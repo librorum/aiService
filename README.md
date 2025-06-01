@@ -48,11 +48,11 @@ When you don't specify a model, the SDK automatically uses the first available m
 ## Installation
 
 ```bash
-npm install aiservice
+npm install @librorum/aiservice
 # or
-yarn add aiservice
+yarn add @librorum/aiservice
 # or
-bun add aiservice
+bun add @librorum/aiservice
 ```
 
 🇰🇷 **설치**

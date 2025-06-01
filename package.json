@@ -1,6 +1,6 @@
 {
-  "name": "aiservice",
-  "version": "1.0.0",
+  "name": "@librorum/aiservice",
+  "version": "1.0.1",
   "description": "Unified library for easy integration of multiple AI APIs",
   "keywords": [
     "ai",
@@ -8,7 +8,7 @@
     "service"
   ],
   "license": "MIT",
-  "author": "jjk",
+  "author": "librorum",
   "type": "module",
   "main": "index.js",
   "scripts": {
