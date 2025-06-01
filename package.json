@@ -12,11 +12,18 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test:text": "DEBUG=ai_service:* node ai_service_test.js text",
-    "test:image": "DEBUG=ai_service:* node ai_service_test.js image",
-    "test:tts": "DEBUG=ai_service:* node ai_service_test.js tts",
-    "test:video": "DEBUG=ai_service:* node ai_service_test.js video",
-    "test:stt": "DEBUG=ai_service:* node ai_service_test.js stt"
+    "test": "DEBUG=ai_service:* node index.js",
+    "test:text": "DEBUG=ai_service:* node index.js text",
+    "test:image": "DEBUG=ai_service:* node index.js image",
+    "test:tts": "DEBUG=ai_service:* node index.js tts",
+    "test:video": "DEBUG=ai_service:* node index.js video",
+    "test:stt": "DEBUG=ai_service:* node index.js stt",
+    "test:openai": "DEBUG=ai_service:* node index.js openai",
+    "test:anthropic": "DEBUG=ai_service:* node index.js anthropic",
+    "test:gemini": "DEBUG=ai_service:* node index.js gemini",
+    "test:stability": "DEBUG=ai_service:* node index.js stability",
+    "test:runway": "DEBUG=ai_service:* node index.js runway",
+    "test:elevenlabs": "DEBUG=ai_service:* node index.js elevenlabs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",

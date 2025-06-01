@@ -81,39 +81,6 @@ class AIService {
     debug('=========================================')
   }
 
-
-  // async calculateCost({ model, input_tokens, output_tokens }) {
-  //   const ai_model = this.ai_models.find(m => m.model === model)
-  //   if (ai_model == null) {
-  //     debug('모델을 찾을 수 없음:', model)
-  //     return {
-  //       points: 0,
-  //       input_cost: 0,
-  //       output_cost: 0,
-  //       total_cost_usd: 0,
-  //       total_cost_krw: 0,
-  //       provider: null,
-  //       model: model
-  //     }
-  //   }
-
-  //   const input_cost = ai_model.input_token_price * input_tokens
-  //   const output_cost = ai_model.output_token_price * output_tokens
-  //   const total_cost_usd = input_cost + output_cost
-  //   const total_cost_krw = total_cost_usd * usd_to_krw
-  //   debug('input_cost', input_cost)
-  //   debug('output_cost', output_cost)
-  //   debug('total_cost_usd', total_cost_usd)
-  //   debug('total_cost_krw', total_cost_krw)
-
-  //   return {
-  //     input_cost,
-  //     output_cost,
-  //     total_cost_usd,
-  //     total_cost_krw,
-  //   }
-  // }
-
   /**
    * API 키 유효성 간단 테스트
    * 각 서비스에 대해 API 키가 비어있지 않은지 확인하고 결과 반환
@@ -188,15 +155,6 @@ class AIService {
     const end_time = new Date()
     const execution_time = (end_time - start_time) / 1000 // 초 단위
     debug(`처리 시간: ${execution_time}초`)
-
-    // let cost = 0
-    // if (calculate_cost === true) {
-    //   cost = await this.calculateCost({
-    //     model,
-    //     input_tokens: input_tokens,
-    //     output_tokens: output_tokens,
-    //   })
-    // }
 
     return {
       model: model_used,
@@ -309,27 +267,138 @@ class AIService {
     }
   }
 
-  async test() {
-    for (const [name, provider_service] of Object.entries(this.provider_services)) {
-      const result = await provider_service.test()
-      debug('result', result)
+  /**
+   * Test one or all AI providers
+   * @param {string} [providerName] - Optional provider name to test. If not provided, all providers will be tested.
+   */
+  async test(providerName) {
+    if (providerName) {
+      // Test specific provider
+      const provider_service = this.provider_services[providerName.toLowerCase()]
+      if (!provider_service) {
+        const message = `Provider '${providerName}' not found. Available providers: ${Object.keys(this.provider_services).join(', ')}`
+        debug(message)
+        return { error: message }
+      }
+      debug(`\n${providerName} test begin`)
+      await provider_service.test()
+      debug(`${providerName} test completed`)
+      return { status: 'completed', provider: providerName }
+    } else {
+      // Test all providers
+      const results = {}
+      for (const [name, provider_service] of Object.entries(this.provider_services)) {
+        debug(`\n${name} test begin`)
+        await provider_service.test()
+        debug(`${name} test completed`)
+        results[name] = { status: 'completed' }
+      }
+      return { status: 'completed', results }
     }
   }
 }
 
 const aiService = new AIService()
-// aiService.loadModels().then((r) => {
-//   aiService.ai_models.forEach(model => {
-//     debug('ai_models', model.model)
-//   })
-// })
 
 export default aiService
 
 // 메인 실행부
 // 🇰🇷 메인 실행부입니다.
-console.log('import.meta.url', import.meta.url)
+debug('import.meta.url', import.meta.url)
 if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('메인 실행부')
-  aiService.test()
+  debug('메인 실행부')
+
+  // 명령줄 인수 처리
+  const args = process.argv.slice(2)
+  const firstArg = args[0]?.toLowerCase()
+  const secondArg = args[1]?.toLowerCase()
+
+  // 사용 가능한 프로바이더 목록
+  const availableProviders = Object.keys(aiService.provider_services).join(', ')
+
+  // 도움말 출력 함수
+  const showHelp = () => {
+    console.log('\n사용법:')
+    console.log('  node index.js [test_type] [provider]')
+    console.log('  node index.js [provider]\n')
+    
+    console.log('테스트 유형 (test_type):')
+    console.log('  text     - 텍스트 생성 테스트')
+    console.log('  image    - 이미지 생성 테스트')
+    console.log('  tts      - 텍스트 음성 변환 테스트')
+    console.log('  video    - 비디오 생성 테스트')
+    console.log('  stt      - 음성 인식 테스트\n')
+    
+    console.log('사용 가능한 프로바이더 (provider):')
+    console.log(`  ${availableProviders.replace(/, /g, '\n  ')}\n`)
+    
+    console.log('예시:')
+    console.log('  node index.js                     - 도움말 표시')
+    console.log('  node index.js openai              - OpenAI 프로바이더 테스트')
+    console.log('  node index.js text                - 모든 프로바이더의 텍스트 생성 테스트')
+    console.log('  node index.js image openai        - OpenAI의 이미지 생성 테스트')
+    console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 테스트\n')
+    
+    process.exit(0)
+  }
+
+  // 인수가 없으면 도움말 표시
+  if (args.length === 0) {
+    showHelp()
+  }
+
+  // 첫 번째 인자가 프로바이더 이름인지 확인
+  if (firstArg && !['text', 'image', 'tts', 'video', 'stt'].includes(firstArg)) {
+    // 프로바이더 지정 테스트 실행
+    debug(`${firstArg} 프로바이더 테스트 실행`)
+    aiService.test(firstArg).then(() => {
+      debug(`${firstArg} 프로바이더 테스트 완료`)
+    })
+  } else {
+    // 기존 테스트 유형에 따른 실행
+    const testType = firstArg
+    const provider = secondArg // 두 번째 인자로 프로바이더 지정 가능
+
+    const testRunner = async () => {
+      if (provider) {
+        // 특정 프로바이더에 대한 테스트 실행
+        debug(`${provider} 프로바이더의 ${testType || '기본'} 테스트 실행`)
+        await aiService.test(provider)
+      } else {
+        // 전체 프로바이더 테스트 실행
+        debug(`${testType || '기본'} 테스트 실행`)
+        await aiService.test()
+      }
+    }
+
+    switch (testType) {
+      case 'text':
+        debug('텍스트 생성 테스트 실행')
+        testRunner().then(() => debug('텍스트 생성 테스트 완료'))
+        break
+      case 'image':
+        debug('이미지 생성 테스트 실행')
+        testRunner().then(() => debug('이미지 생성 테스트 완료'))
+        break
+      case 'tts':
+        debug('TTS 테스트 실행')
+        testRunner().then(() => debug('TTS 테스트 완료'))
+        break
+      case 'video':
+        debug('비디오 생성 테스트 실행')
+        testRunner().then(() => debug('비디오 생성 테스트 완료'))
+        break
+      case 'stt':
+        debug('STT 테스트 실행')
+        testRunner().then(() => debug('STT 테스트 완료'))
+        break
+      default:
+        if (testType) {
+          debug(`알 수 없는 테스트 유형: ${testType}. 사용 가능한 테스트 유형: text, image, tts, video, stt`)
+          debug(`사용 가능한 프로바이더: ${availableProviders}`)
+        }
+        debug('기본 테스트 실행')
+        testRunner().then(() => debug('기본 테스트 완료'))
+    }
+  }
 }

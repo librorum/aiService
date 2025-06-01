@@ -141,7 +141,7 @@ class AIServiceBase {
   async test() {
     const test_dir = `test_output/${this.provider_name}`
     if (this.provider_name == null) {
-      cosnsole.log('typeof', typeof this)
+      debug('typeof', typeof this)
     }
     try {
       await fs.access(test_dir)
