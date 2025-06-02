@@ -27,22 +27,24 @@ class AnthropicService extends AIServiceBase {
 
     this.models_info = [
       {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-0",
-        "support_text_output": true,
-        "input_token_price_1m": 3.0,
-        "output_token_price_1m": 15.0,
-        "input_token_price": 0.000003,
-        "output_token_price": 0.000015
+        provider: "anthropic",
+        model: "claude-sonnet-4-0",
+        support_text_output: true,
+        support_web_search: true,
+        input_token_price_1m: 3.0,
+        output_token_price_1m: 15.0,
+        input_token_price: 0.000003,
+        output_token_price: 0.000015
       },
       {
-        "provider": "anthropic",
-        "model": "claude-opus-4-0",
-        "support_text_output": true,
-        "input_token_price_1m": 15.0,
-        "output_token_price_1m": 75.0,
-        "input_token_price": 0.000015,
-        "output_token_price": 0.000075
+        provider: "anthropic",
+        model: "claude-opus-4-0",
+        support_text_output: true,
+        support_web_search: true,
+        input_token_price_1m: 15.0,
+        output_token_price_1m: 75.0,
+        input_token_price: 0.000015,
+        output_token_price: 0.000075
       },
       // {
       //   "provider": "anthropic",
@@ -78,7 +80,8 @@ class AnthropicService extends AIServiceBase {
     temperature = 0.7,
     max_tokens = 500,
     ai_rule,
-    calculate_cost = false
+    calculate_cost = false,
+    tools = [], // ['web_search']
   }) {
     try {
       model = model || this.default_text_model.model
@@ -94,13 +97,24 @@ class AnthropicService extends AIServiceBase {
         ]
       }]
 
-      const response = await this.client.messages.create({
+      let request = {
         model: model,
         max_tokens: 1000,
         temperature: 1,
         system: ai_rule,
         messages
-      })
+      }
+      if (tools.length > 0) {
+        request.tools = tools.map(tool => {
+          if (tool === 'web_search') {
+            request.tool_choice = { "type": "web_search_20250305" }
+            return { type: "web_search_20250305" }
+          } else {
+            return null
+          }
+        }).filter(tool => tool !== null)
+      }
+      const response = await this.client.messages.create(request)
 
       return {
         model_used: model,

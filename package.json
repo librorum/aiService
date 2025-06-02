@@ -14,11 +14,13 @@
   "scripts": {
     "test": "DEBUG=ai_service:* node index.js",
     "test:text": "DEBUG=ai_service:* node index.js text",
+    "test:websearch": "DEBUG=ai_service:* node index.js websearch",
     "test:image": "DEBUG=ai_service:* node index.js image",
     "test:tts": "DEBUG=ai_service:* node index.js tts",
     "test:video": "DEBUG=ai_service:* node index.js video",
     "test:stt": "DEBUG=ai_service:* node index.js stt",
     "test:openai": "DEBUG=ai_service:* node index.js openai",
+    "test:openai:websearch": "DEBUG=ai_service:* node index.js websearch openai",
     "test:anthropic": "DEBUG=ai_service:* node index.js anthropic",
     "test:gemini": "DEBUG=ai_service:* node index.js gemini",
     "test:stability": "DEBUG=ai_service:* node index.js stability",

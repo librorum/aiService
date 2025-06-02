@@ -27,6 +27,7 @@ class OpenAiService extends AIServiceBase {
       {
         model: 'gpt-4.1',
         support_text_output: true,
+        support_web_search: true,
         input_token_price_1m: 2.0,
         output_token_price_1m: 8.0,
         input_token_price: 0.000002,
@@ -35,6 +36,7 @@ class OpenAiService extends AIServiceBase {
       {
         model: 'gpt-4o',
         support_text_output: true,
+        support_web_search: true,
         input_token_price_1m: 2.5,
         output_token_price_1m: 10.0,
         input_token_price: 0.0000025,
@@ -88,7 +90,8 @@ class OpenAiService extends AIServiceBase {
     temperature = 0.7,
     max_tokens = 500,
     ai_rule,
-    calculate_cost = false
+    calculate_cost = false,
+    tools = [], // ['web_search']
   }) {
     try {
       const messages = []
@@ -97,12 +100,24 @@ class OpenAiService extends AIServiceBase {
       }
       messages.push({ role: 'user', content: prompt })
 
-      const response = await this.client.responses.create({
+      let request = {
         model,
         input: messages,
         // temperature: temperature,
         // max_tokens: max_tokens
-      })
+      }
+      if (tools.length > 0) {
+        request.tools = tools.map(tool => {
+          if (tool === 'web_search') {
+            request.tool_choice = { "type": "web_search_preview" }
+            return { type: "web_search_preview" }
+          } else {
+            return null
+          }
+        }).filter(tool => tool !== null)
+      }
+
+      const response = await this.client.responses.create(request)
       return {
         model_used: model,
         text: response.output_text,

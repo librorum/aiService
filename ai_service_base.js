@@ -63,7 +63,9 @@ class AIServiceBase {
     model = this.default_text_model,
     temperature = 0.7,
     max_tokens = 500,
-    ai_rule
+    ai_rule,
+    tools,
+
   }) {
     throw new Error('generateText 메서드가 구현되지 않았습니다.')
   }
@@ -138,7 +140,7 @@ class AIServiceBase {
     }
   }
 
-  async test() {
+  async test({ feature = null, tools = [] }) {
     const test_dir = `test_output/${this.provider_name}`
     if (this.provider_name == null) {
       debug('typeof', typeof this)
@@ -149,7 +151,7 @@ class AIServiceBase {
       await fs.mkdir(test_dir, { recursive: true })
     }
     for (const model_info of this.models_info) {
-      const result = await this.testModel(model_info, test_dir)
+      const result = await this.testModel({ model_info, test_dir, feature: null })
       try {
         debug(`모델 ${model_info.model} 테스트 성공:`, result)
       } catch (error) {
@@ -158,13 +160,29 @@ class AIServiceBase {
     }
   }
 
-  async testModel(model_info, test_dir) {
-    debug('testModel', model_info)
+  /**
+   * 특정 모델을 테스트하는 함수
+   * @param {Object} params - 테스트 파라미터 객체
+   * @param {Object} params.model_info - 모델 정보 객체
+   * @param {string} params.test_dir - 테스트 결과를 저장할 디렉토리
+   * @param {string|null} params.feature - 테스트할 기능 ('text', 'image', 'audio', 'video', null)
+   *                                       null인 경우 모든 지원 기능을 테스트
+   */
+  async testModel({ model_info, test_dir, feature = null, tools = [] }) {
+    debug('testModel', model_info, 'feature:', feature)
     if (model_info == null) {
       throw new Error(`모델 ${model_info.model}을 찾을 수 없습니다.`)
     }
     const model = model_info.model
-    if (model_info.support_text_output) {
+
+    // feature가 지정된 경우, 해당 feature만 테스트
+    // feature가 null인 경우, 모든 지원 기능을 테스트
+    const shouldTestText = feature === null || feature === 'text'
+    const shouldTestImage = feature === null || feature === 'image'
+    const shouldTestAudio = feature === null || feature === 'audio'
+    const shouldTestVideo = feature === null || feature === 'video'
+
+    if (shouldTestText && model_info.support_text_output) {
       const {
         text,
         usage,
@@ -172,13 +190,29 @@ class AIServiceBase {
       } = await this.generateText({
         prompt: '30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.',
         model: model,
+        tools: tools,
       })
       debug('text', text)
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
       await fs.writeFile(`${test_dir}/${model}.txt`, `${text}\n\n${usage_str}\n\n${cost_str}`)
     }
-    if (model_info.support_image_output) {
+    if (shouldTestText && model_info.support_web_search) {
+      const {
+        text,
+        usage,
+        cost
+      } = await this.generateText({
+        prompt: '오늘의 한국 뉴스?는',
+        model: model,
+        web_search: true,
+      })
+      debug('text', text)
+      const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
+      const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
+      await fs.writeFile(`${test_dir}/${model}.txt`, `${text}\n\n${usage_str}\n\n${cost_str}`)
+    }
+    if (shouldTestImage && model_info.support_image_output) {
       const {
         image,
         usage,
@@ -192,7 +226,7 @@ class AIServiceBase {
       await fs.writeFile(`${test_dir}/${model}.jpg`, image)
       debug(`${model} 테스트 결과 저장:`, { usage, cost })
     }
-    if (model_info.support_tts_output) {
+    if (shouldTestAudio && model_info.support_tts_output) {
       const {
         audio,
         usage,
@@ -206,7 +240,7 @@ class AIServiceBase {
       await fs.writeFile(`${test_dir}/${model}.mp3`, audio)
       debug(`${model} 테스트 결과 저장:`, { usage, cost })
     }
-    if (model_info.support_video_output) {
+    if (shouldTestVideo && model_info.support_video_output) {
       const {
         video,
         usage,
@@ -224,4 +258,4 @@ class AIServiceBase {
   }
 }
 
-export default AIServiceBase 
+export default AIServiceBase

@@ -138,7 +138,8 @@ class AIService {
     ai_rule,
     temperature = 0.7,
     max_tokens = 2000,
-    calculate_cost = false
+    calculate_cost = false,
+    web_search = false
   }) {
     const ai_provider = this.provider_services[provider]
 
@@ -149,7 +150,8 @@ class AIService {
       temperature,
       max_tokens,
       ai_rule,
-      calculate_cost
+      calculate_cost,
+      web_search
     })
 
     const end_time = new Date()
@@ -321,24 +323,26 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('\n사용법:')
     console.log('  node index.js [test_type] [provider]')
     console.log('  node index.js [provider]\n')
-    
+
     console.log('테스트 유형 (test_type):')
     console.log('  text     - 텍스트 생성 테스트')
     console.log('  image    - 이미지 생성 테스트')
     console.log('  tts      - 텍스트 음성 변환 테스트')
     console.log('  video    - 비디오 생성 테스트')
-    console.log('  stt      - 음성 인식 테스트\n')
-    
+    console.log('  stt      - 음성 인식 테스트')
+    console.log('  websearch - 웹 검색 테스트\n')
+
     console.log('사용 가능한 프로바이더 (provider):')
     console.log(`  ${availableProviders.replace(/, /g, '\n  ')}\n`)
-    
+
     console.log('예시:')
     console.log('  node index.js                     - 도움말 표시')
     console.log('  node index.js openai              - OpenAI 프로바이더 테스트')
     console.log('  node index.js text                - 모든 프로바이더의 텍스트 생성 테스트')
     console.log('  node index.js image openai        - OpenAI의 이미지 생성 테스트')
-    console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 테스트\n')
-    
+    console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 테스트')
+    console.log('  node index.js websearch           - 웹 검색 테스트\n')
+
     process.exit(0)
   }
 
@@ -348,7 +352,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
 
   // 첫 번째 인자가 프로바이더 이름인지 확인
-  if (firstArg && !['text', 'image', 'tts', 'video', 'stt'].includes(firstArg)) {
+  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch'].includes(firstArg)) {
     // 프로바이더 지정 테스트 실행
     debug(`${firstArg} 프로바이더 테스트 실행`)
     aiService.test(firstArg).then(() => {
@@ -376,6 +380,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         debug('텍스트 생성 테스트 실행')
         testRunner().then(() => debug('텍스트 생성 테스트 완료'))
         break
+      case 'websearch':
+        debug('텍스트 생성 테스트 실행')
+        testRunner().then(() => debug('웹써치 테스트 완료'))
+        break
+      case 'text':
+        debug('텍스트 생성 테스트 실행')
+        testRunner().then(() => debug('텍스트 생성 테스트 완료'))
+        break
       case 'image':
         debug('이미지 생성 테스트 실행')
         testRunner().then(() => debug('이미지 생성 테스트 완료'))
@@ -392,9 +404,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         debug('STT 테스트 실행')
         testRunner().then(() => debug('STT 테스트 완료'))
         break
+      case 'websearch':
+        debug('웹 검색 테스트 실행')
+        testRunner().then(() => debug('웹 검색 테스트 완료'))
+        break
       default:
         if (testType) {
-          debug(`알 수 없는 테스트 유형: ${testType}. 사용 가능한 테스트 유형: text, image, tts, video, stt`)
+          debug(`알 수 없는 테스트 유형: ${testType}. 사용 가능한 테스트 유형: text, image, tts, video, stt, websearch`)
           debug(`사용 가능한 프로바이더: ${availableProviders}`)
         }
         debug('기본 테스트 실행')
