@@ -9,6 +9,7 @@ A unified Node.js SDK for integrating multiple AI service providers with a consi
 - **Multi-provider support**: OpenAI, Anthropic, Google Gemini, Stability AI, Runway, ElevenLabs
 - **Unified API**: Consistent interface across all providers
 - **Multiple AI capabilities**: Text generation, image generation, text-to-speech, video generation
+- **Web search integration**: Real-time web search capabilities with integrated AI processing
 - **Cost calculation**: Optional cost tracking for API usage
 - **Environment-based configuration**: Easy setup with environment variables
 
@@ -16,19 +17,20 @@ A unified Node.js SDK for integrating multiple AI service providers with a consi
 - **다중 제공업체 지원**: OpenAI, Anthropic, Google Gemini, Stability AI, Runway, ElevenLabs
 - **통합 API**: 모든 제공업체에서 일관된 인터페이스
 - **다양한 AI 기능**: 텍스트 생성, 이미지 생성, 텍스트 음성 변환, 비디오 생성
+- **웹 검색 통합**: 실시간 웹 검색 기능과 AI 처리의 통합
 - **비용 계산**: API 사용량에 대한 선택적 비용 추적
 - **환경 기반 구성**: 환경 변수로 쉬운 설정
 
 ## Supported AI Providers( 지원되는 AI 제공업체)
 
-| Provider | Text Generation | Image Generation | Text-to-Speech | Video Generation |
-|----------|----------------|------------------|----------------|------------------|
-| OpenAI | | | | |
-| Anthropic | | | | |
-| Google Gemini | | | | |
-| Stability AI | | | | |
-| Runway | | | | |
-| ElevenLabs | | | | |
+| Provider | Text Generation | Image Generation | Text-to-Speech | Video Generation | Web Search |
+|----------|----------------|------------------|----------------|------------------|------------|
+| OpenAI | ✓ | ✓ | ✓ | | ✓ |
+| Anthropic | ✓ | | | | ✓ |
+| Google Gemini | ✓ | ✓ | ✓ | | ✓ |
+| Stability AI | | ✓ | | | |
+| Runway | | | | ✓ | |
+| ElevenLabs | | | ✓ | | |
 
 ## Default Models( 기본 모델)
 
@@ -241,6 +243,74 @@ console.log(cost);     // Cost information (if calculate_cost: true)
 
  **비디오 생성**
 
+### Web Search
+
+```javascript
+// Basic web search with AI analysis
+// 기본 웹 검색과 AI 분석
+const { text, usage, cost } = await aiService.generateText({
+  provider: 'openai',
+  prompt: 'What are the latest developments in quantum computing?',
+  tools: ['web_search']
+});
+
+const { text: anthropic_result, usage: anthropic_usage, cost: anthropic_cost } = await aiService.generateText({
+  provider: 'anthropic',
+  prompt: 'Find recent news about AI breakthroughs and summarize them',
+  tools: ['web_search']
+});
+
+// Combined AI processing with web search
+// 웹 검색과 결합된 AI 처리
+const { text: combined_result } = await aiService.generateText({
+  provider: 'gemini',
+  prompt: 'Search for current cryptocurrency prices and provide investment analysis',
+  tools: ['web_search'],
+  temperature: 0.3
+});
+
+// Response includes web search results integrated with AI analysis
+// 응답에는 AI 분석과 통합된 웹 검색 결과가 포함됩니다
+console.log(text);    // AI-processed response with web search context
+console.log(usage);   // Usage information
+console.log(cost);    // Cost information (if calculate_cost: true)
+```
+
+ **웹 검색**
+
+### Testing
+
+The SDK includes enhanced testing capabilities to verify specific features and tools:
+
+ SDK에는 특정 기능과 도구를 확인하기 위한 향상된 테스트 기능이 포함되어 있습니다:
+
+```javascript
+// Test all features
+// 모든 기능 테스트
+await aiService.test('openai');
+
+// Test specific features
+// 특정 기능 테스트
+await aiService.test('openai', 'text');        // Text generation only
+await aiService.test('openai', 'image');       // Image generation only
+await aiService.test('openai', 'audio');       // TTS/STT only
+await aiService.test('openai', 'video');       // Video generation only
+
+// Test with web search tools
+// 웹 검색 도구와 함께 테스트
+await aiService.test('openai', 'text', ['web_search']);
+await aiService.test('anthropic', null, ['web_search']); // All features with web search
+
+// Test different providers
+// 다른 제공업체 테스트
+await aiService.test('anthropic', 'text');
+await aiService.test('gemini', 'image');
+await aiService.test('elevenlabs', 'audio');
+await aiService.test('runway', 'video');
+```
+
+ **테스트**
+
 ### Cost Calculation
 
 Enable cost calculation by setting `calculate_cost: true`:
@@ -274,6 +344,7 @@ Generate text using various AI providers.
 - `ai_rule` (string, optional): Additional AI instructions
 - `temperature` (number, optional): Creativity level (0-1)
 - `max_tokens` (number, optional): Maximum response length
+- `tools` (array, optional): Available tools (e.g., ['web_search'])
 - `calculate_cost` (boolean, optional): Enable cost calculation
 
 ### generateImage(options)

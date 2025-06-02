@@ -151,9 +151,9 @@ class AIServiceBase {
       await fs.mkdir(test_dir, { recursive: true })
     }
     for (const model_info of this.models_info) {
-      const result = await this.testModel({ model_info, test_dir, feature: null })
+      const result = await this.testModel({ model_info, test_dir, feature, tools: tools })
       try {
-        debug(`모델 ${model_info.model} 테스트 성공:`, result)
+        debug(`모델 ${model_info.model} 테스트 성공:`)
       } catch (error) {
         console.error(`모델 ${model.model} 테스트 실패:`, error.message)
       }
@@ -183,29 +183,18 @@ class AIServiceBase {
     const shouldTestVideo = feature === null || feature === 'video'
 
     if (shouldTestText && model_info.support_text_output) {
+      let prompt = '30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.'
+      if (tools.includes('web_search')) {
+        prompt = '오늘의 한국 뉴스중에서 쇼츠로 구성할만 한것을 찾아서 30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.'
+      }
       const {
         text,
         usage,
         cost
       } = await this.generateText({
-        prompt: '30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.',
+        prompt,
         model: model,
         tools: tools,
-      })
-      debug('text', text)
-      const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
-      const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
-      await fs.writeFile(`${test_dir}/${model}.txt`, `${text}\n\n${usage_str}\n\n${cost_str}`)
-    }
-    if (shouldTestText && model_info.support_web_search) {
-      const {
-        text,
-        usage,
-        cost
-      } = await this.generateText({
-        prompt: '오늘의 한국 뉴스?는',
-        model: model,
-        web_search: true,
       })
       debug('text', text)
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null

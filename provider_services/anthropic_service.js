@@ -107,8 +107,11 @@ class AnthropicService extends AIServiceBase {
       if (tools.length > 0) {
         request.tools = tools.map(tool => {
           if (tool === 'web_search') {
-            request.tool_choice = { "type": "web_search_20250305" }
-            return { type: "web_search_20250305" }
+            request.tool_choice = { type: "tool", name: 'web_search' }
+            return {
+              type: "web_search_20250305",
+              name: "web_search",
+            }
           } else {
             return null
           }
@@ -116,9 +119,18 @@ class AnthropicService extends AIServiceBase {
       }
       const response = await this.client.messages.create(request)
 
+      let responseText = ''
+      if (response.content && Array.isArray(response.content)) {
+        for (const item of response.content) {
+          if (item.type === 'text' && item.text) {
+            responseText += item.text
+          }
+        }
+      }
+
       return {
         model_used: model,
-        text: response.content[0].text,
+        text: responseText || response.content[0]?.text,
         usage: {
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,

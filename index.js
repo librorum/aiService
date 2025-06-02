@@ -270,30 +270,32 @@ class AIService {
   }
 
   /**
-   * Test one or all AI providers
-   * @param {string} [providerName] - Optional provider name to test. If not provided, all providers will be tested.
+   * 하나 또는 모든 AI 프로바이더 테스트
+   * @param {string} [providerName] - 테스트할 프로바이더 이름 (선택사항). 제공하지 않으면 모든 프로바이더를 테스트합니다.
+   * @param {string} [feature] - 테스트할 기능 ('text', 'image', 'audio', 'video'). null인 경우 모든 지원 기능을 테스트.
+   * @param {Array} [tools] - 사용할 도구 배열 (예: ['web_search'])
    */
-  async test(providerName) {
+  async test(providerName, feature = null, tools = []) {
     if (providerName) {
-      // Test specific provider
+      // 특정 프로바이더 테스트
       const provider_service = this.provider_services[providerName.toLowerCase()]
       if (!provider_service) {
         const message = `Provider '${providerName}' not found. Available providers: ${Object.keys(this.provider_services).join(', ')}`
         debug(message)
         return { error: message }
       }
-      debug(`\n${providerName} test begin`)
-      await provider_service.test()
+      debug(`\n${providerName} test begin (feature: ${feature || 'all'}, tools: ${JSON.stringify(tools)})`)
+      await provider_service.test({ feature, tools })
       debug(`${providerName} test completed`)
-      return { status: 'completed', provider: providerName }
+      return { status: 'completed', provider: providerName, feature, tools }
     } else {
-      // Test all providers
+      // 모든 프로바이더 테스트
       const results = {}
       for (const [name, provider_service] of Object.entries(this.provider_services)) {
-        debug(`\n${name} test begin`)
-        await provider_service.test()
+        debug(`\n${name} test begin (feature: ${feature || 'all'}, tools: ${JSON.stringify(tools)})`)
+        await provider_service.test({ feature, tools })
         debug(`${name} test completed`)
-        results[name] = { status: 'completed' }
+        results[name] = { status: 'completed', feature, tools }
       }
       return { status: 'completed', results }
     }
@@ -325,23 +327,24 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('  node index.js [provider]\n')
 
     console.log('테스트 유형 (test_type):')
-    console.log('  text     - 텍스트 생성 테스트')
-    console.log('  image    - 이미지 생성 테스트')
-    console.log('  tts      - 텍스트 음성 변환 테스트')
-    console.log('  video    - 비디오 생성 테스트')
-    console.log('  stt      - 음성 인식 테스트')
-    console.log('  websearch - 웹 검색 테스트\n')
+    console.log('  text     - 텍스트 생성 테스트 (특정 기능만 테스트)')
+    console.log('  image    - 이미지 생성 테스트 (특정 기능만 테스트)')
+    console.log('  tts      - 텍스트 음성 변환 테스트 (특정 기능만 테스트)')
+    console.log('  video    - 비디오 생성 테스트 (특정 기능만 테스트)')
+    console.log('  stt      - 음성 인식 테스트 (특정 기능만 테스트)')
+    console.log('  websearch - 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
 
     console.log('사용 가능한 프로바이더 (provider):')
     console.log(`  ${availableProviders.replace(/, /g, '\n  ')}\n`)
 
     console.log('예시:')
     console.log('  node index.js                     - 도움말 표시')
-    console.log('  node index.js openai              - OpenAI 프로바이더 테스트')
-    console.log('  node index.js text                - 모든 프로바이더의 텍스트 생성 테스트')
-    console.log('  node index.js image openai        - OpenAI의 이미지 생성 테스트')
-    console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 테스트')
-    console.log('  node index.js websearch           - 웹 검색 테스트\n')
+    console.log('  node index.js openai              - OpenAI 프로바이더의 모든 기능 테스트')
+    console.log('  node index.js text                - 모든 프로바이더의 텍스트 생성 기능만 테스트')
+    console.log('  node index.js image openai        - OpenAI의 이미지 생성 기능만 테스트')
+    console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 기능만 테스트')
+    console.log('  node index.js websearch           - 웹 검색 도구를 사용한 텍스트 생성 테스트')
+    console.log('  node index.js websearch openai    - OpenAI에서 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
 
     process.exit(0)
   }
@@ -363,50 +366,42 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const testType = firstArg
     const provider = secondArg // 두 번째 인자로 프로바이더 지정 가능
 
-    const testRunner = async () => {
+    const testRunner = async (feature = null, tools = []) => {
       if (provider) {
         // 특정 프로바이더에 대한 테스트 실행
         debug(`${provider} 프로바이더의 ${testType || '기본'} 테스트 실행`)
-        await aiService.test(provider)
+        await aiService.test(provider, feature, tools)
       } else {
         // 전체 프로바이더 테스트 실행
         debug(`${testType || '기본'} 테스트 실행`)
-        await aiService.test()
+        await aiService.test(null, feature, tools)
       }
     }
 
     switch (testType) {
       case 'text':
         debug('텍스트 생성 테스트 실행')
-        testRunner().then(() => debug('텍스트 생성 테스트 완료'))
-        break
-      case 'websearch':
-        debug('텍스트 생성 테스트 실행')
-        testRunner().then(() => debug('웹써치 테스트 완료'))
-        break
-      case 'text':
-        debug('텍스트 생성 테스트 실행')
-        testRunner().then(() => debug('텍스트 생성 테스트 완료'))
-        break
-      case 'image':
-        debug('이미지 생성 테스트 실행')
-        testRunner().then(() => debug('이미지 생성 테스트 완료'))
-        break
-      case 'tts':
-        debug('TTS 테스트 실행')
-        testRunner().then(() => debug('TTS 테스트 완료'))
-        break
-      case 'video':
-        debug('비디오 생성 테스트 실행')
-        testRunner().then(() => debug('비디오 생성 테스트 완료'))
-        break
-      case 'stt':
-        debug('STT 테스트 실행')
-        testRunner().then(() => debug('STT 테스트 완료'))
+        testRunner('text').then(() => debug('텍스트 생성 테스트 완료'))
         break
       case 'websearch':
         debug('웹 검색 테스트 실행')
-        testRunner().then(() => debug('웹 검색 테스트 완료'))
+        testRunner('text', ['web_search']).then(() => debug('웹 검색 테스트 완료'))
+        break
+      case 'image':
+        debug('이미지 생성 테스트 실행')
+        testRunner('image').then(() => debug('이미지 생성 테스트 완료'))
+        break
+      case 'tts':
+        debug('TTS 테스트 실행')
+        testRunner('audio').then(() => debug('TTS 테스트 완료'))
+        break
+      case 'video':
+        debug('비디오 생성 테스트 실행')
+        testRunner('video').then(() => debug('비디오 생성 테스트 완료'))
+        break
+      case 'stt':
+        debug('STT 테스트 실행')
+        testRunner('audio').then(() => debug('STT 테스트 완료'))
         break
       default:
         if (testType) {
