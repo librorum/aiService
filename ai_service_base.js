@@ -32,6 +32,8 @@ class AIServiceBase {
     }
 
     this.models_info = []
+    this.tools = {}
+    this.functions = {}
   }
 
 
@@ -244,6 +246,30 @@ class AIServiceBase {
       debug(`${model} 테스트 결과 저장:`, { usage, cost })
     }
     debug(`${model} 테스트 완료`)
+  }
+  // const functions = [
+  //   {
+  //     name: "calculate",
+  //     description: "Evaluates a mathematical expression.",
+  //     parameters: {
+  //       type: "object",
+  //       properties: {
+  //         expression: {
+  //           type: "string",
+  //           description: "The mathematical expression to evaluate, e.g., '1+2*3'",
+  //         },
+  //       },
+  //       required: ["expression"],
+  //     },
+  //   },
+  // ];
+  registerTool({ name, description, parameters, func }) {
+    this.tools.push({
+      name,
+      description,
+      parameters,
+    })
+    this.functions[name] = func
   }
 }
 

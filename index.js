@@ -284,6 +284,32 @@ class AIService {
         debug(message)
         return { error: message }
       }
+      provider_service.registerTool({
+        name: 'calculator',
+        description: 'Evaluates a mathematical expression.',
+        parameters: {
+          type: 'object',
+          properties: {
+            expression: {
+              type: 'string',
+              description: 'The mathematical expression to evaluate, e.g., "1+2*3"',
+            },
+          },
+          required: ['expression'],
+        },
+        function: (expression) => {
+          try {
+            // 입력된 수식을 안전하게 평가합니다.
+            if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
+              throw new Error("Invalid expression")
+            }
+            const result = Function(`"use strict"; return (${expression})`)()
+            return result
+          } catch (error) {
+            return "Invalid expression"
+          }
+        }
+      })
       debug(`\n${providerName} test begin (feature: ${feature || 'all'}, tools: ${JSON.stringify(tools)})`)
       await provider_service.test({ feature, tools })
       debug(`${providerName} test completed`)
@@ -386,6 +412,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       case 'websearch':
         debug('웹 검색 테스트 실행')
         testRunner('text', ['web_search']).then(() => debug('웹 검색 테스트 완료'))
+        break
+      case 'tool':
+        debug('tool 테스트 실행')
+        testRunner('text', ['calculator']).then(() => debug('tool 테스트 완료'))
         break
       case 'image':
         debug('이미지 생성 테스트 실행')

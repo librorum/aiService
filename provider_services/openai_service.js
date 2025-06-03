@@ -15,19 +15,13 @@ class OpenAiService extends AIServiceBase {
     this.client = new OpenAI({
       apiKey: this.api_key,
     })
-    // 지원하는 기능 설정
-    this.supports = {
-      text: true,
-      image: true,
-      audio: true,
-      video: false
-    }
 
     this.models_info = [
       {
         model: 'gpt-4.1',
         support_text_output: true,
         support_web_search: true,
+        support_tool: true,
         input_token_price_1m: 2.0,
         output_token_price_1m: 8.0,
         input_token_price: 0.000002,
@@ -37,6 +31,7 @@ class OpenAiService extends AIServiceBase {
         model: 'gpt-4o',
         support_text_output: true,
         support_web_search: true,
+        support_tool: true,
         input_token_price_1m: 2.5,
         output_token_price_1m: 10.0,
         input_token_price: 0.0000025,
