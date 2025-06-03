@@ -7,7 +7,25 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Tool",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "tool",
+        "openai"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "WebSearch",
       "skipFiles": [
         "<node_internals>/**"
       ],
