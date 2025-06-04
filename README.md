@@ -251,21 +251,25 @@ console.log(cost);     // Cost information (if calculate_cost: true)
 const { text, usage, cost } = await aiService.generateText({
   provider: 'openai',
   prompt: 'What are the latest developments in quantum computing?',
-  tools: ['web_search']
+  web_search: true,  // Enable web search
+  calculate_cost: true
 });
 
-const { text: anthropic_result, usage: anthropic_usage, cost: anthropic_cost } = await aiService.generateText({
+// Using system tools for web search (recommended)
+// 웹 검색을 위한 시스템 도구 사용 (권장)
+const { text: search_result, usage, cost } = await aiService.generateText({
   provider: 'anthropic',
   prompt: 'Find recent news about AI breakthroughs and summarize them',
-  tools: ['web_search']
+  system_tools: ['web_search'],
+  temperature: 0.3
 });
 
-// Combined AI processing with web search
-// 웹 검색과 결합된 AI 처리
-const { text: combined_result } = await aiService.generateText({
+// Combined AI processing with web search for multiple providers
+// 여러 제공업체에 대한 웹 검색과 결합된 AI 처리
+const { text: gemini_result } = await aiService.generateText({
   provider: 'gemini',
   prompt: 'Search for current cryptocurrency prices and provide investment analysis',
-  tools: ['web_search'],
+  system_tools: ['web_search'],
   temperature: 0.3
 });
 
@@ -278,6 +282,41 @@ console.log(cost);    // Cost information (if calculate_cost: true)
 
  **웹 검색**
 
+### Custom Tools (사용자 정의 도구)
+
+```javascript
+// Calculator tool is built-in and can be used directly
+// 계산기 도구는 내장되어 있어 바로 사용할 수 있습니다
+const { text, usage, cost } = await aiService.generateText({
+  provider: 'openai',
+  prompt: 'What is 12 multiplied by 15?',
+  user_tools: ['calculator'],  // Use built-in calculator tool
+  temperature: 0.1
+});
+
+// Test with multiple providers
+// 여러 제공업체에서 테스트
+const { text: anthropic_result } = await aiService.generateText({
+  provider: 'anthropic',
+  prompt: 'Calculate the compound interest for $1000 at 5% for 10 years using the formula A = P(1 + r)^t',
+  user_tools: ['calculator']
+});
+
+// Combining web search and calculator tools
+// 웹 검색과 계산기 도구 결합
+const { text: combined_result } = await aiService.generateText({
+  provider: 'gemini',
+  prompt: 'Search for the current Bitcoin price and calculate how much 0.5 Bitcoin would be worth',
+  system_tools: ['web_search'],
+  user_tools: ['calculator']
+});
+
+console.log(text);    // AI response with tool-assisted calculations
+console.log(usage);   // Usage information
+```
+
+ **웹 검색 및 사용자 정의 도구**
+
 ### Testing
 
 The SDK includes enhanced testing capabilities to verify specific features and tools:
@@ -285,8 +324,12 @@ The SDK includes enhanced testing capabilities to verify specific features and t
  SDK에는 특정 기능과 도구를 확인하기 위한 향상된 테스트 기능이 포함되어 있습니다:
 
 ```javascript
-// Test all features
-// 모든 기능 테스트
+// Test all features for all providers
+// 모든 제공업체의 모든 기능 테스트
+await aiService.test();
+
+// Test all features for specific provider
+// 특정 제공업체의 모든 기능 테스트
 await aiService.test('openai');
 
 // Test specific features
@@ -296,10 +339,20 @@ await aiService.test('openai', 'image');       // Image generation only
 await aiService.test('openai', 'audio');       // TTS/STT only
 await aiService.test('openai', 'video');       // Video generation only
 
-// Test with web search tools
-// 웹 검색 도구와 함께 테스트
+// Test with system tools (web search)
+// 시스템 도구(웹 검색)와 함께 테스트
 await aiService.test('openai', 'text', ['web_search']);
 await aiService.test('anthropic', null, ['web_search']); // All features with web search
+await aiService.test(null, 'text', ['web_search']); // All providers, text generation with web search
+
+// Test with user tools (calculator)
+// 사용자 도구(계산기)와 함께 테스트
+await aiService.test('openai', 'text', [], ['calculator']);
+await aiService.test('anthropic', null, [], ['calculator']); // All features with calculator
+
+// Test with both system and user tools
+// 시스템 도구와 사용자 도구 모두 사용하여 테스트
+await aiService.test('gemini', 'text', ['web_search'], ['calculator']);
 
 // Test different providers
 // 다른 제공업체 테스트
@@ -344,7 +397,9 @@ Generate text using various AI providers.
 - `ai_rule` (string, optional): Additional AI instructions
 - `temperature` (number, optional): Creativity level (0-1)
 - `max_tokens` (number, optional): Maximum response length
-- `tools` (array, optional): Available tools (e.g., ['web_search'])
+- `web_search` (boolean, optional): Enable web search integration
+- `system_tools` (array, optional): System tools to use (e.g., ['web_search'])
+- `user_tools` (array, optional): User tools to use (e.g., ['calculator'])
 - `calculate_cost` (boolean, optional): Enable cost calculation
 
 ### generateImage(options)
@@ -388,6 +443,21 @@ Generate videos using AI providers.
 - `model` (string): Model name
 - `input` (object): Video generation parameters
 - `calculate_cost` (boolean, optional): Enable cost calculation
+
+### test(providerName, feature, system_tools, user_tools)
+
+Test AI provider functionality with specific features and tools.
+
+ 특정 기능과 도구로 AI 제공업체 기능을 테스트합니다.
+
+**Parameters:**
+- `providerName` (string, optional): Provider name to test. If null, tests all providers
+- `feature` (string, optional): Feature to test ('text', 'image', 'audio', 'video'). If null, tests all features
+- `system_tools` (array, optional): System tools to include in test (e.g., ['web_search'])
+- `user_tools` (array, optional): User tools to include in test (e.g., ['calculator'])
+
+**Returns:**
+- Promise that resolves to test results object
 
 ## API Pricing Information
 

@@ -86,7 +86,8 @@ class OpenAiService extends AIServiceBase {
     max_tokens = 500,
     ai_rule,
     calculate_cost = false,
-    tools = [], // ['web_search']
+    system_tools = [], // ['web_search']
+    user_tools = [],
   }) {
     try {
       const messages = []
@@ -101,21 +102,78 @@ class OpenAiService extends AIServiceBase {
         // temperature: temperature,
         // max_tokens: max_tokens
       }
-      if (tools.length > 0) {
-        request.tools = tools.map(tool => {
-          if (tool === 'web_search') {
+      // tool_choice: "auto" : default , Call zero, one, or multiple functions. 
+      // tool_choice: "required" : 
+      // tool_choice: { "type": "web_search_preview" } : Call exactly one specific function.
+      // tool_choice: "none" : 근데 이건 어차피 tool을 안주면 되는 거라 같음
+      let tools = []
+      if (system_tools.length > 0) {
+        tools = [...system_tools.map(tool_name => {
+          if (tool_name === 'web_search') {
             request.tool_choice = { "type": "web_search_preview" }
             return { type: "web_search_preview" }
-          } else {
-            return null
           }
+          return { type: tool_name }
         }).filter(tool => tool !== null)
+        ]
+      }
+      if (user_tools.length > 0) {
+        tools = [...tools, ...user_tools.map(tool_name => {
+          const tool = this.tools[tool_name]
+          if (tool) {
+            return {
+              type: 'function',
+              ...tool,
+              // strict: true,
+            }
+          }
+          return null
+        }).filter(tool => tool !== null)
+        ]
+      }
+      if (tools.length > 0) {
+        request.tools = tools
+        debug('tools', JSON.stringify(tools, null, 2))
+      } else {
+        debug('no tools')
+      }
+      const response = await this.client.responses.create(request)
+      debug('response', JSON.stringify(response, null, 2))
+
+      let response_text = response.output_text || ''
+      let response_tools = []
+
+      // 함수 호출 처리
+      if (response.output && Array.isArray(response.output)) {
+        for (const item of response.output) {
+          if (item.type === 'function_call' && item.status === 'completed') {
+            response_tools.push({
+              name: item.name,
+              parameters: JSON.parse(item.arguments),
+            })
+          }
+        }
       }
 
-      const response = await this.client.responses.create(request)
+      // 함수 실행 및 결과 텍스트에 포함
+      if (response_tools.length > 0) {
+        const func = this.functions[response_tools[0].name]
+        if (func) {
+          const function_call = func(response_tools[0].parameters)
+          const function_result = function_call instanceof Promise ? await function_call : function_call
+          if (response_text) {
+            response_text += `\n${function_result}`
+          } else {
+            response_text = function_result
+          }
+          debug('ƒƒƒ function_result', function_result)
+        }
+      }
+
       return {
         model_used: model,
-        text: response.output_text,
+        text: response_text,
+        tools: response_tools,
         usage: {
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,

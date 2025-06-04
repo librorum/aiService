@@ -83,7 +83,8 @@ class AnthropicService extends AIServiceBase {
     max_tokens = 500,
     ai_rule,
     calculate_cost = false,
-    tools = [], // ['web_search']
+    system_tools = [], // ['web_search']
+    user_tools = [],
   }) {
     try {
       model = model || this.default_text_model.model
@@ -106,33 +107,83 @@ class AnthropicService extends AIServiceBase {
         system: ai_rule,
         messages
       }
-      if (tools.length > 0) {
-        request.tools = tools.map(tool => {
-          if (tool === 'web_search') {
+
+      // system_tools와 user_tools를 처리
+      let tools = []
+      if (system_tools.length > 0) {
+        tools = [...system_tools.map(tool_name => {
+          if (tool_name === 'web_search') {
             request.tool_choice = { type: "tool", name: 'web_search' }
             return {
               type: "web_search_20250305",
               name: "web_search",
             }
-          } else {
-            return null
           }
-        }).filter(tool => tool !== null)
+          return null
+        }).filter(tool => tool !== null)]
       }
-      const response = await this.client.messages.create(request)
 
-      let responseText = ''
+      if (user_tools.length > 0) {
+        tools = [...tools, ...user_tools.map(tool_name => {
+          const tool = this.tools[tool_name]
+
+          if (tool) {
+            let input_schema = JSON.parse(JSON.stringify(tool.parameters))
+            delete input_schema.additionalProperties
+            return {
+              name: tool.name,
+              description: tool.description,
+              input_schema
+            }
+          }
+          return null
+        }).filter(tool => tool !== null)]
+      }
+
+      if (tools.length > 0) {
+        request.tools = tools
+        debug('tools', JSON.stringify(tools, null, 2))
+      } else {
+        debug('no tools')
+      }
+
+      const response = await this.client.messages.create(request)
+      debug('response', JSON.stringify(response, null, 2))
+      let response_text = ''
+      let response_tools = []
       if (response.content && Array.isArray(response.content)) {
         for (const item of response.content) {
           if (item.type === 'text' && item.text) {
-            responseText += item.text
+            response_text += item.text
           }
+          if (item.type === 'tool_use') {
+            response_tools.push({
+              name: item.name,
+              parameters: item.input,
+            })
+          }
+        }
+      }
+
+      if (response_tools.length > 0) {
+        const func = this.functions[response_tools[0].name]
+        if (func) {
+          const function_call = func(response_tools[0].parameters)
+          const function_result = function_call instanceof Promise ? await function_call : function_call
+          if (response_text) {
+            response_text += `\n${function_result}`
+          } else {
+            response_text = function_result
+          }
+
+          debug('ƒƒƒ function_result', function_result)
         }
       }
 
       return {
         model_used: model,
-        text: responseText || response.content[0]?.text,
+        text: response_text,
+        tools: response_tools,
         usage: {
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,

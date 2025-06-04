@@ -1,6 +1,6 @@
 {
   "name": "@librorum/aiservice",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "Unified library for easy integration of multiple AI APIs",
   "keywords": [
     "ai",
@@ -15,14 +15,20 @@
     "test": "DEBUG=ai_service:* node index.js",
     "test:text": "DEBUG=ai_service:* node index.js text",
     "test:websearch": "DEBUG=ai_service:* node index.js websearch",
+    "test:tool": "DEBUG=ai_service:* node index.js tool",
     "test:image": "DEBUG=ai_service:* node index.js image",
     "test:tts": "DEBUG=ai_service:* node index.js tts",
     "test:video": "DEBUG=ai_service:* node index.js video",
     "test:stt": "DEBUG=ai_service:* node index.js stt",
     "test:openai": "DEBUG=ai_service:* node index.js openai",
+    "test:openai:text": "DEBUG=ai_service:* node index.js text openai",
     "test:openai:websearch": "DEBUG=ai_service:* node index.js websearch openai",
     "test:anthropic": "DEBUG=ai_service:* node index.js anthropic",
+    "test:anthropic:text": "DEBUG=ai_service:* node index.js text anthropic",
+    "test:anthropic:tool": "DEBUG=ai_service:* node index.js tool anthropic",
+    "test:anthropic:websearch": "DEBUG=ai_service:* node index.js websearch anthropic",
     "test:gemini": "DEBUG=ai_service:* node index.js gemini",
+    "test:gemini:text": "DEBUG=ai_service:* node index.js text gemini",
     "test:stability": "DEBUG=ai_service:* node index.js stability",
     "test:runway": "DEBUG=ai_service:* node index.js runway",
     "test:elevenlabs": "DEBUG=ai_service:* node index.js elevenlabs"

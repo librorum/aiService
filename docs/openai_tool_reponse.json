@@ -1,0 +1,74 @@
+{
+  "id": "resp_684002b26eb081a383dc54395654953208d71328605629f3",
+  "object": "response",
+  "created_at": 1749025458,
+  "status": "completed",
+  "background": false,
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "model": "gpt-4.1-2025-04-14",
+  "output": [무
+    {
+      "id": "fc_684002b3162481a3a7964a5b7cbe331f08d71328605629f3",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"expression\":\"1+2+3+4+5+6+7+8+9+10\"}",
+      "call_id": "call_RI0ApPCrahfc80Hw4Sxw5qms",
+      "name": "calculator"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "function",
+      "description": "Evaluates a mathematical expression.",
+      "name": "calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string",
+            "description": "The mathematical expression to evaluate, e.g., \"1+2*3\""
+          }
+        },
+        "required": [
+          "expression"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    }
+  ],
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 80,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 33,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 113
+  },
+  "user": null,
+  "metadata": {},
+  "output_text": ""
+}

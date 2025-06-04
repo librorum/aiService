@@ -142,7 +142,7 @@ class AIServiceBase {
     }
   }
 
-  async test({ feature = null, tools = [] }) {
+  async test({ feature = null, system_tools = [], user_tools = [] }) {
     const test_dir = `test_output/${this.provider_name}`
     if (this.provider_name == null) {
       debug('typeof', typeof this)
@@ -153,12 +153,8 @@ class AIServiceBase {
       await fs.mkdir(test_dir, { recursive: true })
     }
     for (const model_info of this.models_info) {
-      const result = await this.testModel({ model_info, test_dir, feature, tools: tools })
-      try {
-        debug(`모델 ${model_info.model} 테스트 성공:`)
-      } catch (error) {
-        console.error(`모델 ${model.model} 테스트 실패:`, error.message)
-      }
+      const result = await this.testModel({ model_info, test_dir, feature, system_tools, user_tools })
+      debug(`모델 ${model_info.model} 테스트 ${result}`)
     }
   }
 
@@ -170,8 +166,8 @@ class AIServiceBase {
    * @param {string|null} params.feature - 테스트할 기능 ('text', 'image', 'audio', 'video', null)
    *                                       null인 경우 모든 지원 기능을 테스트
    */
-  async testModel({ model_info, test_dir, feature = null, tools = [] }) {
-    debug('testModel', model_info, 'feature:', feature)
+  async testModel({ model_info, test_dir, feature = null, system_tools = [], user_tools = [] }) {
+    debug('testModel', model_info.model, 'feature:', feature)
     if (model_info == null) {
       throw new Error(`모델 ${model_info.model}을 찾을 수 없습니다.`)
     }
@@ -184,10 +180,17 @@ class AIServiceBase {
     const shouldTestAudio = feature === null || feature === 'audio'
     const shouldTestVideo = feature === null || feature === 'video'
 
+    if (user_tools.length > 0 && model_info.support_tool !== true) {
+      debug('모델', model, '는 tools를 지원하지 않습니다.')
+      return false
+    }
     if (shouldTestText && model_info.support_text_output) {
       let prompt = '30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.'
-      if (tools.includes('web_search')) {
+      if (system_tools.includes('web_search')) {
         prompt = '오늘의 한국 뉴스중에서 쇼츠로 구성할만 한것을 찾아서 30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.'
+      }
+      if (user_tools.includes('calculator')) {
+        prompt = '1+2+3+4+5+6+7+8+9+10 를 calcuator로 계산해주세요.'
       }
       const {
         text,
@@ -196,12 +199,14 @@ class AIServiceBase {
       } = await this.generateText({
         prompt,
         model: model,
-        tools: tools,
+        system_tools: system_tools,
+        user_tools: user_tools
       })
       debug('text', text)
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
       await fs.writeFile(`${test_dir}/${model}.txt`, `${text}\n\n${usage_str}\n\n${cost_str}`)
+      return true
     }
     if (shouldTestImage && model_info.support_image_output) {
       const {
@@ -216,6 +221,7 @@ class AIServiceBase {
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
       await fs.writeFile(`${test_dir}/${model}.jpg`, image)
       debug(`${model} 테스트 결과 저장:`, { usage, cost })
+      return true
     }
     if (shouldTestAudio && model_info.support_tts_output) {
       const {
@@ -245,7 +251,7 @@ class AIServiceBase {
       await fs.writeFile(`${test_dir}/${model}.mp4`, video)
       debug(`${model} 테스트 결과 저장:`, { usage, cost })
     }
-    debug(`${model} 테스트 완료`)
+    return true
   }
   // const functions = [
   //   {
@@ -264,11 +270,11 @@ class AIServiceBase {
   //   },
   // ];
   registerTool({ name, description, parameters, func }) {
-    this.tools.push({
+    this.tools[name] = {
       name,
       description,
       parameters,
-    })
+    }
     this.functions[name] = func
   }
 }

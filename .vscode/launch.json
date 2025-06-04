@@ -7,7 +7,79 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Tool",
+      "name": "Anthropic Text",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "text",
+        "anthropic"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Anthropic WebSearch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "websearch",
+        "anthropic"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Anthropic Tool",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "tool",
+        "anthropic"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "OpenAI WebSearch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "websearch",
+        "openai"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "OpenAI Tool",
       "skipFiles": [
         "<node_internals>/**"
       ],

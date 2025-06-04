@@ -273,9 +273,10 @@ class AIService {
    * 하나 또는 모든 AI 프로바이더 테스트
    * @param {string} [providerName] - 테스트할 프로바이더 이름 (선택사항). 제공하지 않으면 모든 프로바이더를 테스트합니다.
    * @param {string} [feature] - 테스트할 기능 ('text', 'image', 'audio', 'video'). null인 경우 모든 지원 기능을 테스트.
-   * @param {Array} [tools] - 사용할 도구 배열 (예: ['web_search'])
+   * @param {Array} [system_tools] - 사용할 시스템 도구 배열 (예: ['web_search'])
+   * @param {Array} [user_tools] - 사용자 도구 배열 (예: ['web_search'])
    */
-  async test(providerName, feature = null, tools = []) {
+  async test(providerName, feature = null, system_tools = [], user_tools = []) {
     if (providerName) {
       // 특정 프로바이더 테스트
       const provider_service = this.provider_services[providerName.toLowerCase()]
@@ -284,44 +285,47 @@ class AIService {
         debug(message)
         return { error: message }
       }
-      provider_service.registerTool({
-        name: 'calculator',
-        description: 'Evaluates a mathematical expression.',
-        parameters: {
-          type: 'object',
-          properties: {
-            expression: {
-              type: 'string',
-              description: 'The mathematical expression to evaluate, e.g., "1+2*3"',
+      if (user_tools.includes('calculator')) {
+        provider_service.registerTool({
+          name: 'calculator',
+          description: 'Evaluates a mathematical expression.',
+          parameters: {
+            type: 'object',
+            properties: {
+              expression: {
+                type: 'string',
+                description: 'The mathematical expression to evaluate, e.g., "1+2*3"',
+              },
             },
+            required: ['expression'],
+            additionalProperties: false,
           },
-          required: ['expression'],
-        },
-        function: (expression) => {
-          try {
-            // 입력된 수식을 안전하게 평가합니다.
-            if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
-              throw new Error("Invalid expression")
+          func: ({ expression }) => {
+            try {
+              // 입력된 수식을 안전하게 평가합니다.
+              if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
+                throw new Error("Invalid expression")
+              }
+              const result = Function(`"use strict"; return (${expression})`)()
+              return result
+            } catch (error) {
+              return "Invalid expression"
             }
-            const result = Function(`"use strict"; return (${expression})`)()
-            return result
-          } catch (error) {
-            return "Invalid expression"
           }
-        }
-      })
-      debug(`\n${providerName} test begin (feature: ${feature || 'all'}, tools: ${JSON.stringify(tools)})`)
-      await provider_service.test({ feature, tools })
+        })
+      }
+      debug(`\n${providerName} test begin (feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
+      await provider_service.test({ feature, system_tools, user_tools })
       debug(`${providerName} test completed`)
-      return { status: 'completed', provider: providerName, feature, tools }
+      return { status: 'completed', provider: providerName, feature, system_tools, user_tools }
     } else {
       // 모든 프로바이더 테스트
       const results = {}
       for (const [name, provider_service] of Object.entries(this.provider_services)) {
-        debug(`\n${name} test begin (feature: ${feature || 'all'}, tools: ${JSON.stringify(tools)})`)
-        await provider_service.test({ feature, tools })
+        debug(`\n${name} test begin (feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
+        await provider_service.test({ feature, system_tools, user_tools })
         debug(`${name} test completed`)
-        results[name] = { status: 'completed', feature, tools }
+        results[name] = { status: 'completed', feature, system_tools, user_tools }
       }
       return { status: 'completed', results }
     }
@@ -381,7 +385,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
 
   // 첫 번째 인자가 프로바이더 이름인지 확인
-  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch'].includes(firstArg)) {
+  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch', 'tool'].includes(firstArg)) {
     // 프로바이더 지정 테스트 실행
     debug(`${firstArg} 프로바이더 테스트 실행`)
     aiService.test(firstArg).then(() => {
@@ -392,15 +396,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const testType = firstArg
     const provider = secondArg // 두 번째 인자로 프로바이더 지정 가능
 
-    const testRunner = async (feature = null, tools = []) => {
+    const testRunner = async (feature = null, system_tools = [], user_tools = []) => {
       if (provider) {
         // 특정 프로바이더에 대한 테스트 실행
         debug(`${provider} 프로바이더의 ${testType || '기본'} 테스트 실행`)
-        await aiService.test(provider, feature, tools)
+        await aiService.test(provider, feature, system_tools, user_tools)
       } else {
         // 전체 프로바이더 테스트 실행
         debug(`${testType || '기본'} 테스트 실행`)
-        await aiService.test(null, feature, tools)
+        await aiService.test(null, feature, system_tools, user_tools)
       }
     }
 
@@ -411,11 +415,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         break
       case 'websearch':
         debug('웹 검색 테스트 실행')
-        testRunner('text', ['web_search']).then(() => debug('웹 검색 테스트 완료'))
+        testRunner('text', ['web_search'], []).then(() => debug('웹 검색 테스트 완료'))
         break
       case 'tool':
         debug('tool 테스트 실행')
-        testRunner('text', ['calculator']).then(() => debug('tool 테스트 완료'))
+        testRunner('text', [], ['calculator']).then(() => debug('tool 테스트 완료'))
         break
       case 'image':
         debug('이미지 생성 테스트 실행')
