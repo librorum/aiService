@@ -155,8 +155,20 @@ class AIService {
     return text_models
   }
 
+  getProviderByModel(model) {
+    for (const [provider_name, provider_service] of Object.entries(this.provider_services)) {
+      if (provider_service.models_info) {
+        const provider_model_info = provider_service.models_info.find(model_info => model_info.model === model)
+        if (provider_model_info) {
+          return provider_name
+        }
+      }
+    }
+    return null
+  }
+
   async generateText({
-    provider = 'openai',
+    provider = null,
     model,
     prompt,
     ai_rule,
@@ -165,6 +177,10 @@ class AIService {
     calculate_cost = false,
     web_search = false
   }) {
+    if (!provider && model) {
+      provider = this.getProviderByModel(model)
+    }
+    provider = provider || 'openai'
     const ai_provider = this.provider_services[provider]
 
     const start_time = new Date()

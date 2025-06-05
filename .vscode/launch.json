@@ -165,6 +165,24 @@
         "DEBUG": "ai_service:*",
         "NODE_ENV": "dev"
       }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Gemini Image",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "image",
+        "gemini"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
     }
   ]
 }

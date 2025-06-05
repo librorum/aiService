@@ -90,33 +90,38 @@ console.log(api_status);
 ### Text Generation
 
 ```javascript
+// Using model name only (auto-detect provider)
+// 모델명만으로 프로바이더 자동 감지
+const { text, usage, cost } = await aiService.generateText({
+  model: 'gpt-4o',
+  prompt: 'Explain quantum computing in simple terms'
+});
+
+const { text: claude_text, usage: claude_usage, cost: claude_cost } = await aiService.generateText({
+  model: 'claude-opus-4-0',
+  prompt: 'Write a creative story about AI'
+});
+
 // Using default models (recommended for quick start)
 // 기본 모델 사용 (빠른 시작에 권장)
-const { text, usage, cost } = await aiService.generateText({
+const { text: openai_text } = await aiService.generateText({
   provider: 'openai',
   prompt: 'Explain quantum computing in simple terms'
 });
 
-const { text: anthropic_text, usage: anthropic_usage, cost: anthropic_cost } = await aiService.generateText({
+const { text: anthropic_text } = await aiService.generateText({
   provider: 'anthropic',
   prompt: 'Write a creative story about AI'
 });
 
-// Specifying custom models
-// 사용자 지정 모델 지정
+// Specifying custom models with provider (explicit)
+// 프로바이더와 모델을 명시적으로 지정
 const { text: custom_text, usage: custom_usage, cost: custom_cost } = await aiService.generateText({
   provider: 'openai',
   model: 'gpt-4o',
   prompt: 'Explain quantum computing in simple terms',
   temperature: 0.7,
   max_tokens: 1000
-});
-
-const { text: claude_text, usage: claude_usage, cost: claude_cost } = await aiService.generateText({
-  provider: 'anthropic',
-  model: 'claude-opus-4-0',
-  prompt: 'Write a creative story about AI',
-  temperature: 0.8
 });
 
 // Response structure

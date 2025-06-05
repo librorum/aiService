@@ -3,7 +3,7 @@ const debug = Debug('ai_service:ai_providers:gemini')
 
 import axios from 'axios'
 import AIServiceBase from '../ai_service_base.js'
-import { GoogleGenAI, Type } from '@google/genai'
+import { GoogleGenAI, Type, Modality } from '@google/genai'
 /**
  * Google Gemini API를 사용하는 AI 서비스 클래스
  * 텍스트, 이미지, Function Calling 기능 제공
@@ -48,7 +48,7 @@ class GeminiService extends AIServiceBase {
       //   output_token_price: 0.0000003
       // },
       {
-        model: "imagen-3.0-generate-001",
+        model: "gemini-2.0-flash-preview-image-generation",
         support_image_output: true,
         input_token_price_1m: 0.04,
         output_token_price_1m: 0.08,
@@ -87,25 +87,18 @@ class GeminiService extends AIServiceBase {
     user_tools = [],
   }) {
     try {
-      const messages = []
-      if (ai_rule) {
-        messages.push({ role: 'system', content: ai_rule })
-      }
-      messages.push({ role: 'user', content: prompt })
-
       // Tool 설정
       const tools = []
       if (system_tools.length > 0) {
-        tools.push(...system_tools.map(tool_name => {
+        system_tools.forEach(tool_name => {
           if (tool_name === 'web_search') {
-            return { googleSearch: {} }
+            tools.push({ googleSearchRetrieval: {} })
           }
-          return null
-        }).filter(tool => tool !== null))
+        })
       }
 
       if (user_tools.length > 0) {
-        tools.push(...user_tools.map(tool_name => {
+        const function_declarations = user_tools.map(tool_name => {
           const tool = this.tools[tool_name]
           if (tool) {
             // Gemini용 parameters 변환 (additionalProperties 제거)
@@ -113,60 +106,103 @@ class GeminiService extends AIServiceBase {
             delete gemini_parameters.additionalProperties
 
             return {
-              function_declarations: [{
-                name: tool.name,
-                description: tool.description,
-                parameters: gemini_parameters
-              }]
+              name: tool.name,
+              description: tool.description,
+              parameters: gemini_parameters
             }
           }
           return null
-        }).filter(tool => tool !== null))
+        }).filter(tool => tool !== null)
+
+        if (function_declarations.length > 0) {
+          tools.push({ functionDeclarations: function_declarations })
+        }
       }
 
       const genAI = this.client
-      const geminiModel = genAI.getGenerativeModel({
+
+      // API 호출 매개변수 설정
+      const request_params = {
         model: model,
-        tools: tools.length > 0 ? tools : undefined,
-        systemInstruction: ai_rule,
-        generationConfig: {
-          temperature: temperature,
-          maxOutputTokens: max_tokens,
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }]
+          }
+        ],
+      }
+
+      // Tools가 있으면 config에 추가
+      if (tools.length > 0) {
+        request_params.config = {
+          tools: tools,
+          generationConfig: {
+            temperature: temperature,
+            maxOutputTokens: max_tokens,
+          }
         }
-      })
-
-      debug('Gemini request:', { model, prompt, tools: tools.length })
-
-      const result = await geminiModel.generateContent(prompt)
-      const response = result.response
-
-      let response_text = response.text() || ''
-      let response_tools = []
-
-      // Function call 처리  
-      const functionCalls = response.functionCalls()
-      if (functionCalls && functionCalls.length > 0) {
-        for (const call of functionCalls) {
-          response_tools.push({
-            name: call.name,
-            parameters: call.args
-          })
-
-          // 함수 실행
-          const func = this.functions[call.name]
-          if (func) {
-            const function_result = await func(call.args)
-            if (response_text) {
-              response_text += `\n${function_result}`
-            } else {
-              response_text = function_result
-            }
-            debug('ƒƒƒ function_result', function_result)
+      } else {
+        request_params.config = {
+          generationConfig: {
+            temperature: temperature,
+            maxOutputTokens: max_tokens,
           }
         }
       }
 
-      const usage = response.usageMetadata || {}
+      // System instruction이 있으면 추가
+      if (ai_rule) {
+        request_params.config.systemInstruction = ai_rule
+      }
+
+      debug('Gemini request params:', JSON.stringify(request_params, null, 2))
+
+      const result = await genAI.models.generateContent(request_params)
+
+      debug('Gemini response:', JSON.stringify(result, null, 2))
+
+      if (!result || !result.candidates || !result.candidates[0]) {
+        throw new Error('Invalid response from Gemini API')
+      }
+
+      let response_text = ''
+      let response_tools = []
+
+      // 텍스트 응답 처리 - candidates에서 직접 추출
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const parts = result.candidates[0].content.parts || []
+        for (const part of parts) {
+          if (part.text) {
+            response_text += part.text
+          }
+        }
+      }
+
+      // Function call 처리
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const parts = result.candidates[0].content.parts || []
+        for (const part of parts) {
+          if (part.functionCall) {
+            response_tools.push({
+              name: part.functionCall.name,
+              parameters: part.functionCall.args || {}
+            })
+
+            // 함수 실행
+            const func = this.functions[part.functionCall.name]
+            if (func) {
+              const function_result = await func(part.functionCall.args || {})
+              if (response_text) {
+                response_text += `\n${function_result}`
+              } else {
+                response_text = function_result
+              }
+            }
+          }
+        }
+      }
+
+      const usage = result.usageMetadata || {}
 
       return {
         model_used: model,
@@ -202,27 +238,40 @@ class GeminiService extends AIServiceBase {
     try {
       const response = await this.client.models.generateContent({
         model,
-        contents: prompt,
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }]
+          }
+        ],
         config: {
           responseModalities: [Modality.TEXT, Modality.IMAGE],
         }
       })
 
+      const images = []
       for (const part of response.candidates[0].content.parts) {
-        // Based on the part type, either show the text or save the image
-        if (part.text) {
-          console.log(part.text)
-        } else if (part.inlineData) {
+        // 이미지 데이터 추출
+        if (part.inlineData) {
           const imageData = part.inlineData.data
           const image_buffer = Buffer.from(imageData, "base64")
-          return {
-            image: image_buffer,
-            input_tokens: response.usageMetadata.promptTokenCount,
-            output_tokens: response.usageMetadata.candidatesTokenCount,
-            total_tokens: response.usageMetadata.totalTokenCount,
-          }
+          images.push(image_buffer)
         }
       }
+
+      if (images.length === 0) {
+        return {
+          error: "No images found in response",
+        }
+      }
+
+      const result = {
+        image: images[0], // 첫 번째 이미지만 반환
+        input_tokens: response.usageMetadata.promptTokenCount,
+        output_tokens: response.usageMetadata.candidatesTokenCount,
+        total_tokens: response.usageMetadata.totalTokenCount,
+      }
+      return result
     } catch (error) {
       console.error('Gemini 이미지 생성 오류:', error.message)
       return {
