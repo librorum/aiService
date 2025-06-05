@@ -4,3 +4,4 @@ test_output
 *.log
 .DS_Store
 ai_rule
+docs
