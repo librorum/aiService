@@ -199,11 +199,13 @@ class AIService {
     debug(`처리 시간: ${execution_time}초`)
 
     return {
+      provider,
       model: model_used,
       text: text || '',
       usage,
       cost,
       error,
+      execution_time,
     }
   }
 
@@ -247,6 +249,7 @@ class AIService {
       error,
       model: model_used,
       cost,
+      execution_time
     }
   }
 
@@ -281,6 +284,7 @@ class AIService {
       audio,
       error,
       cost,
+      execution_time
     }
   }
 
@@ -306,6 +310,7 @@ class AIService {
 
     return {
       data: result.data || result,
+      execution_time
     }
   }
 
