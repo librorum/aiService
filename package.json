@@ -1,6 +1,6 @@
 {
   "name": "@librorum/aiservice",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Unified library for easy integration of multiple AI APIs",
   "keywords": [
     "ai",
@@ -29,6 +29,8 @@
     "test:anthropic:websearch": "DEBUG=ai_service:* node index.js websearch anthropic",
     "test:gemini": "DEBUG=ai_service:* node index.js gemini",
     "test:gemini:text": "DEBUG=ai_service:* node index.js text gemini",
+    "test:gemini:tool": "DEBUG=ai_service:* node index.js tool gemini",
+    "test:gemini:websearch": "DEBUG=ai_service:* node index.js websearch gemini",
     "test:stability": "DEBUG=ai_service:* node index.js stability",
     "test:runway": "DEBUG=ai_service:* node index.js runway",
     "test:elevenlabs": "DEBUG=ai_service:* node index.js elevenlabs"
@@ -36,7 +38,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
     "@elevenlabs/elevenlabs-js": "^2.1.0",
-    "@google/genai": "^1.0.1",
+    "@google/genai": "^1.4.0",
     "axios": "^1.9.0",
     "debug": "^4.4.1",
     "dotenv": "^16.5.0",

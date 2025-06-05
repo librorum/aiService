@@ -111,6 +111,60 @@
         "DEBUG": "ai_service:*",
         "NODE_ENV": "dev"
       }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Gemini Text",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "text",
+        "gemini"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Gemini WebSearch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "websearch",
+        "gemini"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Gemini Tool",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "tool",
+        "gemini"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
     }
   ]
 }
