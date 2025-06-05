@@ -8,8 +8,8 @@ import { GoogleGenAI, Type } from '@google/genai'
  * Google Gemini API를 사용하는 AI 서비스 클래스
  * 텍스트, 이미지, Function Calling 기능 제공
  */
-console.log('type string', Type.STRING)
-console.log('type array', Type.ARRAY)
+// console.log('type string', Type.STRING)
+// console.log('type array', Type.ARRAY)
 class GeminiService extends AIServiceBase {
   constructor(api_key = process.env.GEMINI_API_KEY) {
     super('gemini')
@@ -27,26 +27,26 @@ class GeminiService extends AIServiceBase {
         input_token_price: 0.000000075,
         output_token_price: 0.0000003
       },
-      {
-        model: "gemini-1.5-pro",
-        support_text_output: true,
-        support_web_search: true,
-        support_tool: true,
-        input_token_price_1m: 1.25,
-        output_token_price_1m: 5.0,
-        input_token_price: 0.00000125,
-        output_token_price: 0.000005
-      },
-      {
-        model: "gemini-2.0-flash-thinking-exp",
-        support_text_output: true,
-        support_web_search: true,
-        support_tool: true,
-        input_token_price_1m: 0.075,
-        output_token_price_1m: 0.3,
-        input_token_price: 0.000000075,
-        output_token_price: 0.0000003
-      },
+      // {
+      //   model: "gemini-1.5-pro",
+      //   support_text_output: true,
+      //   support_web_search: true,
+      //   support_tool: true,
+      //   input_token_price_1m: 1.25,
+      //   output_token_price_1m: 5.0,
+      //   input_token_price: 0.00000125,
+      //   output_token_price: 0.000005
+      // },
+      // {
+      //   model: "gemini-2.0-flash-thinking-exp",
+      //   support_text_output: true,
+      //   support_web_search: true,
+      //   support_tool: true,
+      //   input_token_price_1m: 0.075,
+      //   output_token_price_1m: 0.3,
+      //   input_token_price: 0.000000075,
+      //   output_token_price: 0.0000003
+      // },
       {
         model: "imagen-3.0-generate-001",
         support_image_output: true,

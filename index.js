@@ -131,6 +131,30 @@ class AIService {
     return results
   }
 
+  /**
+   * 텍스트 생성을 지원하는 모든 모델 정보를 반환
+   * @returns {Array} 모델명과 프로바이더 정보를 포함한 객체 배열
+   */
+  getModels() {
+    const text_models = []
+
+    // 각 프로바이더에서 텍스트 지원 모델 수집
+    for (const [provider_name, provider_service] of Object.entries(this.provider_services)) {
+      if (provider_service.models_info) {
+        const provider_text_models = provider_service.models_info
+          .filter(model_info => model_info.support_text_output === true)
+          .map(model_info => ({
+            model: model_info.model,
+            provider: provider_name
+          }))
+
+        text_models.push(...provider_text_models)
+      }
+    }
+
+    return text_models
+  }
+
   async generateText({
     provider = 'openai',
     model,
@@ -333,6 +357,8 @@ class AIService {
 }
 
 const aiService = new AIService()
+
+console.log(aiService.getModels())
 
 export default aiService
 
