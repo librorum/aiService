@@ -145,30 +145,33 @@ class OpenAiService extends AIServiceBase {
 
       // 함수 호출 처리
       if (response.output && Array.isArray(response.output)) {
-        for (const item of response.output) {
-          if (item.type === 'function_call' && item.status === 'completed') {
-            response_tools.push({
-              name: item.name,
-              parameters: JSON.parse(item.arguments),
-            })
+        for (const output of response.output) {
+          if (output.type === 'function_call' && output.status === 'completed') {
+            // response_tools.push({
+            //   name: output.name,
+            //   parameters: JSON.parse(output.arguments),
+            // })
+            const func = this.functions[output.name]
+            if (func) {
+              const function_call = func(JSON.parse(output.arguments))
+              const function_result = function_call instanceof Promise ? await function_call : function_call
+              debug('ƒƒƒ function_result', function_result)
+              request.input.push(output)
+              request.input.push({
+                type: "function_call_output",
+                call_id: output.call_id,
+                output: function_result.toString()
+              })
+              const response2 = await this.client.responses.create(request)
+              response_text += response2.output_text || ''
+            }
           }
         }
       }
 
       // 함수 실행 및 결과 텍스트에 포함
-      if (response_tools.length > 0) {
-        const func = this.functions[response_tools[0].name]
-        if (func) {
-          const function_call = func(response_tools[0].parameters)
-          const function_result = function_call instanceof Promise ? await function_call : function_call
-          if (response_text) {
-            response_text += `\n${function_result}`
-          } else {
-            response_text = function_result
-          }
-          debug('ƒƒƒ function_result', function_result)
-        }
-      }
+      // if (response_tools.length > 0) {
+      // }
 
       return {
         model_used: model,
