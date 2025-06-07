@@ -289,38 +289,42 @@ console.log(cost);    // Cost information (if calculate_cost: true)
 
 ### Custom Tools (사용자 정의 도구)
 
+First, you need to register tools using `registerTool` in `index.js`:
+
+ 먼저 `index.js`에서 `registerTool`을 사용하여 도구를 등록해야 합니다:
+
 ```javascript
-// Calculator tool is built-in and can be used directly
-// 계산기 도구는 내장되어 있어 바로 사용할 수 있습니다
+import aiService from '@librorum/aiservice';
+
+// Register the built-in calculator tool (already available by default)
+// 내장 계산기 도구 등록 (기본적으로 이미 사용 가능)
+aiService.registerTool('calculator', {
+  name: 'calculator',
+  description: 'Perform basic mathematical calculations',
+  parameters: {
+    type: 'object',
+    properties: {
+      expression: {
+        type: 'string',
+        description: 'Mathematical expression to evaluate'
+      }
+    },
+    required: ['expression']
+  }
+});
+
+// After registering tools, you can use them in AI requests
+// 도구 등록 후, AI 요청에서 사용할 수 있습니다
 const { text, usage, cost } = await aiService.generateText({
   provider: 'openai',
-  prompt: 'What is 12 multiplied by 15?',
-  user_tools: ['calculator'],  // Use built-in calculator tool
+  prompt: 'Calculate the sum of numbers from 1 to 10: 1+2+3+4+5+6+7+8+9+10',
+  user_tools: ['calculator'],  // Use registered calculator tool
   temperature: 0.1
-});
-
-// Test with multiple providers
-// 여러 제공업체에서 테스트
-const { text: anthropic_result } = await aiService.generateText({
-  provider: 'anthropic',
-  prompt: 'Calculate the compound interest for $1000 at 5% for 10 years using the formula A = P(1 + r)^t',
-  user_tools: ['calculator']
-});
-
-// Combining web search and calculator tools
-// 웹 검색과 계산기 도구 결합
-const { text: combined_result } = await aiService.generateText({
-  provider: 'gemini',
-  prompt: 'Search for the current Bitcoin price and calculate how much 0.5 Bitcoin would be worth',
-  system_tools: ['web_search'],
-  user_tools: ['calculator']
 });
 
 console.log(text);    // AI response with tool-assisted calculations
 console.log(usage);   // Usage information
 ```
-
- **웹 검색 및 사용자 정의 도구**
 
 ### Testing
 
