@@ -147,10 +147,7 @@ class OpenAiService extends AIServiceBase {
       if (response.output && Array.isArray(response.output)) {
         for (const output of response.output) {
           if (output.type === 'function_call' && output.status === 'completed') {
-            // response_tools.push({
-            //   name: output.name,
-            //   parameters: JSON.parse(output.arguments),
-            // })
+            response_tools.push(output.name)
             const func = this.functions[output.name]
             if (func) {
               const function_call = func(JSON.parse(output.arguments))
@@ -162,11 +159,11 @@ class OpenAiService extends AIServiceBase {
                 call_id: output.call_id,
                 output: function_result.toString()
               })
-              const response2 = await this.client.responses.create(request)
-              response_text += response2.output_text || ''
             }
           }
         }
+        const response2 = await this.client.responses.create(request)
+        response_text += response2.output_text || ''
       }
 
       // 함수 실행 및 결과 텍스트에 포함

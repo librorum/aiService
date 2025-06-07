@@ -166,7 +166,7 @@ class AIServiceBase {
    * @param {string|null} params.feature - 테스트할 기능 ('text', 'image', 'audio', 'video', null)
    *                                       null인 경우 모든 지원 기능을 테스트
    */
-  async testModel({ model_info, test_dir, feature = null, system_tools = [], user_tools = [] }) {
+  async testModel({ model_info, test_dir, feature = null, system_tools = [], user_tools = [], calculate_cost = true }) {
     debug('testModel', model_info.model, 'feature:', feature)
     if (model_info == null) {
       throw new Error(`모델 ${model_info.model}을 찾을 수 없습니다.`)
@@ -198,11 +198,14 @@ class AIServiceBase {
         cost
       } = await this.generateText({
         prompt,
-        model: model,
-        system_tools: system_tools,
-        user_tools: user_tools
+        model,
+        system_tools,
+        user_tools,
+        calculate_cost
       })
       debug('text', text)
+      debug('usage', usage)
+      debug('cost', cost)
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
       await fs.writeFile(`${test_dir}/${model}.txt`, `${text}\n\n${usage_str}\n\n${cost_str}`)

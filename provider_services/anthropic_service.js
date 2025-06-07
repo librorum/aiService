@@ -147,37 +147,61 @@ class AnthropicService extends AIServiceBase {
         debug('no tools')
       }
 
-      const response = await this.client.messages.create(request)
-      debug('response', JSON.stringify(response, null, 2))
+      const response1 = await this.client.messages.create(request)
+      debug('response1', JSON.stringify(response1, null, 2))
       let response_text = ''
       let response_tools = []
-      if (response.content && Array.isArray(response.content)) {
-        for (const item of response.content) {
-          if (item.type === 'text' && item.text) {
-            response_text += item.text
-          }
-          if (item.type === 'tool_use') {
-            response_tools.push({
-              name: item.name,
-              parameters: item.input,
+
+      response_text = (response1.content.find(block => block.type === 'text'))?.text || ''
+      if (response1.stop_reason === 'tool_use') {
+        const tool_use_blocks = response1.content.filter(block => block.type === 'tool_use')
+        const tool_results = []
+        for (const tool_use of tool_use_blocks) {
+          response_tools.push(tool_use.name)
+          debug(`- 도구: ${tool_use.name}`)
+          debug(`- 파라미터:`, tool_use.input)
+          const func = this.functions[tool_use.name]
+          if (func) {
+            const function_call = func(tool_use.input)
+            const function_result = function_call instanceof Promise ? await function_call : function_call
+            debug('ƒƒƒ function_result', function_result)
+            tool_results.push({
+              tool_use_id: tool_use.id,
+              content: function_result.toString(),
+              is_error: false
             })
           }
         }
-      }
 
-      if (response_tools.length > 0) {
-        const func = this.functions[response_tools[0].name]
-        if (func) {
-          const function_call = func(response_tools[0].parameters)
-          const function_result = function_call instanceof Promise ? await function_call : function_call
-          if (response_text) {
-            response_text += `\n${function_result}`
-          } else {
-            response_text = function_result
-          }
-
-          debug('ƒƒƒ function_result', function_result)
+        // tool_result를 위한 새로운 요청 생성
+        const tool_request = {
+          model: model,
+          max_tokens: 4096,
+          messages: [
+            ...request.messages,
+            {
+              role: 'assistant',
+              content: response1.content
+            },
+            {
+              role: 'user',
+              content: tool_results.map(result => ({
+                type: "tool_result",
+                tool_use_id: result.tool_use_id,
+                content: result.content,
+                is_error: result.is_error || false
+              }))
+            }
+          ]
         }
+
+        // 추가 툴 요청이 있을지 여부는 모른다.
+        // if (tools.length > 0) {
+        //   tool_request.tools = tools
+        // }
+
+        const response2 = await this.client.messages.create(tool_request)
+        response_text += (response2.content.find(block => block.type === 'text'))?.text || ''
       }
 
       return {
@@ -185,14 +209,14 @@ class AnthropicService extends AIServiceBase {
         text: response_text,
         tools: response_tools,
         usage: {
-          input_tokens: response.usage.input_tokens,
-          output_tokens: response.usage.output_tokens,
-          total_tokens: response.usage.input_tokens + response.usage.output_tokens,
+          input_tokens: response1.usage.input_tokens,
+          output_tokens: response1.usage.output_tokens,
+          total_tokens: response1.usage.input_tokens + response1.usage.output_tokens,
         },
         cost: calculate_cost ? this.calculateCost({
           model,
-          input_tokens: response.usage.input_tokens,
-          output_tokens: response.usage.output_tokens,
+          input_tokens: response1.usage.input_tokens,
+          output_tokens: response1.usage.output_tokens,
         }) : null
       }
     } catch (error) {
