@@ -17,13 +17,6 @@ class AnthropicService extends AIServiceBase {
     this.client = new Anthropic({
       apiKey: this.api_key,
     })
-    // 지원하는 기능 설정
-    this.supports = {
-      text: true,
-      image: false,
-      audio: false,
-      video: false
-    }
 
     this.models_info = [
       {
@@ -82,7 +75,6 @@ class AnthropicService extends AIServiceBase {
     temperature = 0.7,
     max_tokens = 500,
     ai_rule,
-    calculate_cost = false,
     system_tools = [], // ['web_search']
     user_tools = [],
   }) {
@@ -213,11 +205,11 @@ class AnthropicService extends AIServiceBase {
           output_tokens: response1.usage.output_tokens,
           total_tokens: response1.usage.input_tokens + response1.usage.output_tokens,
         },
-        cost: calculate_cost ? this.calculateCost({
+        cost: this.calculateCost({
           model,
           input_tokens: response1.usage.input_tokens,
           output_tokens: response1.usage.output_tokens,
-        }) : null
+        })
       }
     } catch (error) {
       console.error('Anthropic 텍스트 생성 오류:', error.message)

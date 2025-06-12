@@ -24,34 +24,9 @@ class AIServiceBase {
     debug('usd_to_krw', usd_to_krw)
     debug('api_margin', api_margin)
 
-    this.supports = {
-      text: false,    // 텍스트 생성 지원 여부
-      image: false,   // 이미지 생성 지원 여부
-      audio: false,   // 오디오 생성/변환 지원 여부
-      video: false    // 비디오 생성 지원 여부
-    }
-
     this.models_info = []
     this.tools = {}
     this.functions = {}
-  }
-
-
-  /**
-   * 특정 기능 지원 여부 확인
-   * @param {string} feature - 확인할 기능 ('text', 'image', 'audio', 'video')
-   * @returns {boolean} 지원 여부
-   */
-  supportsFeature(feature) {
-    return this.supports[feature] || false
-  }
-
-  /**
-   * 지원하는 모든 기능 목록 반환
-   * @returns {Object} 지원하는 기능 목록 객체
-   */
-  getSupportedFeatures() {
-    return { ...this.supports }
   }
 
   /**
@@ -78,7 +53,6 @@ class AIServiceBase {
     width = 1024,
     height = 1024,
     n = 1,
-    calculate_cost = false
   }) {
     throw new Error('generateImage 메서드가 구현되지 않았습니다.')
   }
@@ -87,7 +61,6 @@ class AIServiceBase {
     prompt,
     model = this.default_image_model,
     n = 1,
-    calculate_cost = false
   }) {
     throw new Error('editImage 메서드가 구현되지 않았습니다.')
   }
@@ -125,6 +98,19 @@ class AIServiceBase {
       }
     }
 
+    // Gemini 같이 토큰 길이별로 가격정책이 다른 경우때문에 이거 추가
+    if (model_info.calc_func != null) {
+      const cost = model_info.calc_func(input_tokens, output_tokens)
+      return {
+        points: 0,
+        input_cost: cost.input_cost,
+        output_cost: cost.output_cost,
+        total_cost_usd: cost.input_cost + cost.output_cost,
+        total_cost_krw: (cost.input_cost + cost.output_cost) * usd_to_krw,
+        provider: this.provider_name,
+        model: model
+      }
+    }
     const input_cost = model_info.input_token_price * input_tokens
     const output_cost = model_info.output_token_price * output_tokens
     const total_cost_usd = input_cost + output_cost
@@ -166,12 +152,14 @@ class AIServiceBase {
    * @param {string|null} params.feature - 테스트할 기능 ('text', 'image', 'audio', 'video', null)
    *                                       null인 경우 모든 지원 기능을 테스트
    */
-  async testModel({ model_info, test_dir, feature = null, system_tools = [], user_tools = [], calculate_cost = true }) {
+  async testModel({ model_info, test_dir, feature = null, system_tools = [], user_tools = [] }) {
     debug('testModel', model_info.model, 'feature:', feature)
     if (model_info == null) {
       throw new Error(`모델 ${model_info.model}을 찾을 수 없습니다.`)
     }
     const model = model_info.model
+
+    let tested_features = []
 
     // feature가 지정된 경우, 해당 feature만 테스트
     // feature가 null인 경우, 모든 지원 기능을 테스트
@@ -189,6 +177,9 @@ class AIServiceBase {
       if (system_tools.includes('web_search')) {
         prompt = '오늘의 한국 뉴스중에서 쇼츠로 구성할만 한것을 찾아서 30초짜리 영상 쇼츠 제작에 사용할 나레이션 대사를 한글로 작성해주세요. 한줄에 한문장씩 작성해주세요. 덧붙이는 대사는 만들지 않는다.'
       }
+      if (user_tools.includes('image_generator')) {
+        prompt = 'UFO 가 밤하늘을 나르는 모습을 그려주세요.'
+      }
       if (user_tools.includes('calculator')) {
         prompt = '1+2+3+4+5+6+7+8+9+10 를 calcuator로 계산해주세요.'
       }
@@ -201,7 +192,6 @@ class AIServiceBase {
         model,
         system_tools,
         user_tools,
-        calculate_cost
       })
       debug('text', text)
       debug('usage', usage)
@@ -209,36 +199,56 @@ class AIServiceBase {
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
       await fs.writeFile(`${test_dir}/${model}.txt`, `${text}\n\n${usage_str}\n\n${cost_str}`)
-      return true
+      return feature
     }
     if (shouldTestImage && model_info.support_image_output) {
       const {
         image,
+        image_type,
         usage,
         cost
       } = await this.generateImage({
         prompt: '발아시킨 후 볶아 만든 보리차\n구수한 맛과 향이 살아있는 건강한 보리차\n지퍼팩 포장으로 개봉 후 위생적으로 관리',
         model: model,
       })
+      let image_buffer
+      if (image_type === 'buffer') {
+        image_buffer = image
+      }
+      else if (image_type === 'base64') {
+        image_buffer = Buffer.from(image, "base64")
+      } else if (image_type === 'url') {
+        //TODO
+      }
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
-      await fs.writeFile(`${test_dir}/${model}.jpg`, image)
-      debug(`${model} 테스트 결과 저장:`, { usage, cost })
-      return true
+      await fs.writeFile(`${test_dir}/${model}.jpg`, image_buffer)
+      debug(`${model} 테스트 결과 저장:`, usage_str, cost_str)
+      return feature
     }
     if (shouldTestAudio && model_info.support_tts_output) {
       const {
         audio,
+        audio_type,
         usage,
         cost
       } = await this.generateTTS({
         prompt: '발아시킨 후 볶아 만든 보리차\n구수한 맛과 향이 살아있는 건강한 보리차\n지퍼팩 포장으로 개봉 후 위생적으로 관리',
         model: model,
       })
+      let audio_buffer
+      if (audio_type === 'buffer') {
+        audio_buffer = audio
+      }
+      else if (audio_type === 'base64') {
+        audio_buffer = Buffer.from(audio, "base64")
+      }
+
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
-      await fs.writeFile(`${test_dir}/${model}.mp3`, audio)
-      debug(`${model} 테스트 결과 저장:`, { usage, cost })
+      await fs.writeFile(`${test_dir}/${model}.mp3`, audio_buffer)
+      debug(`${model} 테스트 결과 저장:`, usage_str, cost_str)
+      return feature
     }
     if (shouldTestVideo && model_info.support_video_output) {
       const {
@@ -252,9 +262,10 @@ class AIServiceBase {
       const usage_str = usage != null ? JSON.stringify(usage, null, 2) : null
       const cost_str = cost != null ? JSON.stringify(cost, null, 2) : null
       await fs.writeFile(`${test_dir}/${model}.mp4`, video)
-      debug(`${model} 테스트 결과 저장:`, { usage, cost })
+      debug(`${model} 테스트 결과 저장:`, usage_str, cost_str)
+      return feature
     }
-    return true
+    return 'no_feature'
   }
   // const functions = [
   //   {

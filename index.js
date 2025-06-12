@@ -174,7 +174,6 @@ class AIService {
     ai_rule,
     temperature = 0.7,
     max_tokens = 2000,
-    calculate_cost = false,
     web_search = false
   }) {
     if (!provider && model) {
@@ -190,7 +189,6 @@ class AIService {
       temperature,
       max_tokens,
       ai_rule,
-      calculate_cost,
       web_search
     })
 
@@ -216,13 +214,13 @@ class AIService {
     width = 1024,
     height = 1024,
     n = 1,
-    calculate_cost = false
   }) {
     const ai_provider = this.provider_services[provider]
 
     const start_time = new Date()
     const {
       image,
+      image_type, // base64, url, buffer
       input_tokens,
       output_tokens,
       total_tokens,
@@ -243,6 +241,7 @@ class AIService {
 
     return {
       image,
+      image_type,
       input_tokens,
       output_tokens,
       total_tokens,
@@ -261,20 +260,17 @@ class AIService {
     voice_id,
     response_format = 'mp3',
     ai_rule = 'Speak in a friendly and engaging tone',
-    calculate_cost = false,
   }) {
     const ai_provider = this.provider_services[provider]
     const start_time = new Date()
-    const { audio, error, model_used, cost } = await ai_provider.generateTTS({
+    const { audio, error, model_used, usage, cost } = await ai_provider.generateTTS({
       model,
       prompt,
       voice,
       voice_id,
       response_format,
       ai_rule,
-      calculate_cost
     })
-
     const end_time = new Date()
     const execution_time = (end_time - start_time) / 1000 // 초 단위
     debug(`처리 시간: ${execution_time}초`)
@@ -283,6 +279,7 @@ class AIService {
       model: model_used,
       audio,
       error,
+      usage,
       cost,
       execution_time
     }
@@ -292,7 +289,6 @@ class AIService {
     provider = 'runway',
     model,
     input,
-    calculate_cost = false,
     ...options
   }) {
     const ai_provider = this.provider_services[model]
@@ -326,7 +322,7 @@ class AIService {
       // 특정 프로바이더 테스트
       const provider_service = this.provider_services[providerName.toLowerCase()]
       if (!provider_service) {
-        const message = `Provider '${providerName}' not found. Available providers: ${Object.keys(this.provider_services).join(', ')}`
+        const message = `Provider '${providerName}' not found.Available providers: ${Object.keys(this.provider_services).join(', ')}`
         debug(message)
         return { error: message }
       }
@@ -359,7 +355,7 @@ class AIService {
           }
         })
       }
-      debug(`\n${providerName} test begin (feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
+      debug(`\n${providerName} test begin(feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
       await provider_service.test({ feature, system_tools, user_tools })
       debug(`${providerName} test completed`)
       return { status: 'completed', provider: providerName, feature, system_tools, user_tools }
@@ -367,7 +363,7 @@ class AIService {
       // 모든 프로바이더 테스트
       const results = {}
       for (const [name, provider_service] of Object.entries(this.provider_services)) {
-        debug(`\n${name} test begin (feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
+        debug(`\n${name} test begin(feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
         await provider_service.test({ feature, system_tools, user_tools })
         debug(`${name} test completed`)
         results[name] = { status: 'completed', feature, system_tools, user_tools }
@@ -422,6 +418,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 기능만 테스트')
     console.log('  node index.js websearch           - 웹 검색 도구를 사용한 텍스트 생성 테스트')
     console.log('  node index.js websearch openai    - OpenAI에서 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
+    console.log('  node index.js tool openai    - OpenAI에서 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
 
     process.exit(0)
   }
@@ -432,7 +429,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
 
   // 첫 번째 인자가 프로바이더 이름인지 확인
-  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch', 'tool'].includes(firstArg)) {
+  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch', 'tool', 'image_generator'].includes(firstArg)) {
     // 프로바이더 지정 테스트 실행
     debug(`${firstArg} 프로바이더 테스트 실행`)
     aiService.test(firstArg).then(() => {
@@ -467,6 +464,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       case 'tool':
         debug('tool 테스트 실행')
         testRunner('text', [], ['calculator']).then(() => debug('tool 테스트 완료'))
+        break
+      case 'image_generator':
+        debug('이미지 생성 테스트 실행')
+        testRunner('text', [], ['image_generator']).then(() => debug('이미지 생성 테스트 완료'))
         break
       case 'image':
         debug('이미지 생성 테스트 실행')

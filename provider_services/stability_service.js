@@ -10,14 +10,6 @@ class StabilityService extends AIServiceBase {
     super('stability')
     this.api_key = api_key
 
-    // 지원하는 기능 설정
-    this.supports = {
-      text: false,
-      image: true,
-      audio: false,
-      video: true
-    }
-
     // 모델 설정
     this.default_image_model = 'stable-diffusion-v1-5'
     this.default_video_model = 'stable-video-diffusion'

@@ -128,7 +128,7 @@ const { text: custom_text, usage: custom_usage, cost: custom_cost } = await aiSe
 // 응답 구조
 console.log(text);    // Generated text
 console.log(usage);   // { input_tokens, output_tokens, total_tokens }
-console.log(cost);    // Cost information (if calculate_cost: true)
+console.log(cost);    // Cost information (if 
 ```
 
  **텍스트 생성**
@@ -173,7 +173,7 @@ await fs.writeFile('custom_image.jpg', custom_image);
 // 응답 구조
 console.log('Image saved to file');    // Generated image buffer saved
 console.log(usage);    // { input_tokens, output_tokens, total_tokens }
-console.log(cost);     // Cost information (if calculate_cost: true)
+console.log(cost);     // Cost information 
 ```
 
  **이미지 생성**
@@ -217,7 +217,7 @@ await fs.writeFile('custom_audio.mp3', custom_audio);
 // 응답 구조
 console.log('Audio saved to file');    // Generated audio buffer saved
 console.log(usage);    // { input_tokens, output_tokens, total_tokens }
-console.log(cost);     // Cost information (if calculate_cost: true)
+console.log(cost);     // Cost information 
 ```
 
  **텍스트 음성 변환**
@@ -243,7 +243,7 @@ await fs.writeFile('generated_video.mp4', video);
 
 console.log('Video saved to file');    // Generated video saved
 console.log(usage);    // Usage information
-console.log(cost);     // Cost information (if calculate_cost: true)
+console.log(cost);     // Cost information 
 ```
 
  **비디오 생성**
@@ -257,7 +257,6 @@ const { text, usage, cost } = await aiService.generateText({
   provider: 'openai',
   prompt: 'What are the latest developments in quantum computing?',
   web_search: true,  // Enable web search
-  calculate_cost: true
 });
 
 // Using system tools for web search (recommended)
@@ -282,7 +281,7 @@ const { text: gemini_result } = await aiService.generateText({
 // 응답에는 AI 분석과 통합된 웹 검색 결과가 포함됩니다
 console.log(text);    // AI-processed response with web search context
 console.log(usage);   // Usage information
-console.log(cost);    // Cost information (if calculate_cost: true)
+console.log(cost);    // Cost information 
 ```
 
  **웹 검색**
@@ -375,16 +374,13 @@ await aiService.test('runway', 'video');
 
 ### Cost Calculation
 
-Enable cost calculation by setting `calculate_cost: true`:
-
- `calculate_cost: true`를 설정하여 비용 계산을 활성화하세요:
+Cost Calculated in USD & KRW
 
 ```javascript
 const { text, usage, cost } = await aiService.generateText({
   provider: 'openai',
   model: 'gpt-4',
   prompt: 'Explain machine learning',
-  calculate_cost: true
 });
 
 console.log(cost); // Cost information
@@ -409,7 +405,6 @@ Generate text using various AI providers.
 - `web_search` (boolean, optional): Enable web search integration
 - `system_tools` (array, optional): System tools to use (e.g., ['web_search'])
 - `user_tools` (array, optional): User tools to use (e.g., ['calculator'])
-- `calculate_cost` (boolean, optional): Enable cost calculation
 
 ### generateImage(options)
 
@@ -424,7 +419,6 @@ Generate images using AI providers.
 - `width` (number, optional): Image width
 - `height` (number, optional): Image height
 - `n` (number, optional): Number of images to generate
-- `calculate_cost` (boolean, optional): Enable cost calculation
 
 ### generateTTS(options)
 
@@ -439,7 +433,6 @@ Convert text to speech.
 - `voice` (string, optional): Voice type (OpenAI)
 - `voice_id` (string, optional): Voice ID (ElevenLabs)
 - `response_format` (string, optional): Audio format
-- `calculate_cost` (boolean, optional): Enable cost calculation
 
 ### generateVideo(options)
 
@@ -451,7 +444,6 @@ Generate videos using AI providers.
 - `provider` (string): AI provider ('runway')
 - `model` (string): Model name
 - `input` (object): Video generation parameters
-- `calculate_cost` (boolean, optional): Enable cost calculation
 
 ### test(providerName, feature, system_tools, user_tools)
 

@@ -10,13 +10,6 @@ class RunwayService extends AIServiceBase {
     super('runway')
     this.api_key = api_key
 
-    // 지원하는 기능 설정
-    this.supports = {
-      text: false,
-      image: false,
-      audio: false,
-      video: true
-    }
   }
 
   /**

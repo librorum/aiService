@@ -1,14 +1,14 @@
-1+2+3+4+5+6+7+8+9+10의 계산 결과는 55입니다.
+undefined
 
 {
-  "input_tokens": 80,
-  "output_tokens": 33,
-  "total_tokens": 113
+  "input_tokens": 55,
+  "output_tokens": 1056,
+  "total_tokens": 1111
 }
 
 {
-  "input_cost": 0.00015999999999999999,
-  "output_cost": 0.00026399999999999997,
-  "total_cost_usd": 0.00042399999999999995,
-  "total_cost_krw": 0.6359999999999999
+  "input_cost": 0.00038500000000000003,
+  "output_cost": 0.042744000000000004,
+  "total_cost_usd": 0.043129,
+  "total_cost_krw": 64.69350000000001
 }

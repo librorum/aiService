@@ -71,6 +71,25 @@ class OpenAiService extends AIServiceBase {
     this.default_image_model = this.image_models[0]
     this.default_tts_model = this.tts_models[0]
     this.default_stt_model = this.stt_models[0]
+
+    this.registerTool({
+      name: 'image_generator',
+      description: '이미지 생성',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: {
+            type: 'string',
+            description: 'The prompt for image generation',
+          },
+        },
+        required: ['prompt'],
+        additionalProperties: false,
+      },
+      func: async ({ prompt, model = this.default_image_model.model, width, height, n = 1 }) => {
+        return await this.generateImage({ prompt, model, width, height, n })
+      }
+    })
   }
 
   /**
@@ -85,7 +104,6 @@ class OpenAiService extends AIServiceBase {
     temperature = 0.7,
     max_tokens = 500,
     ai_rule,
-    calculate_cost = false,
     system_tools = [], // ['web_search']
     user_tools = [],
   }) {
@@ -137,6 +155,11 @@ class OpenAiService extends AIServiceBase {
       } else {
         debug('no tools')
       }
+      // tools.push({
+      //   type: 'function',
+      //   ...this.tools['image_generator']
+      // })
+      debug('request', JSON.stringify(request, null, 2))
       const response = await this.client.responses.create(request)
       debug('response', JSON.stringify(response, null, 2))
 
@@ -153,6 +176,25 @@ class OpenAiService extends AIServiceBase {
               const function_call = func(JSON.parse(output.arguments))
               const function_result = function_call instanceof Promise ? await function_call : function_call
               debug('ƒƒƒ function_result', function_result)
+              if (function_result instanceof Object && function_result.image != null) {
+                let cost = this.calculateCost({
+                  model,
+                  input_tokens: response.usage.input_tokens,
+                  output_tokens: response.usage.output_tokens,
+                })
+                cost.input_cost += function_result.cost.input_cost
+                cost.output_cost += function_result.cost.output_cost
+                cost.total_cost_usd += function_result.cost.total_cost_usd
+                cost.total_cost_krw += function_result.cost.total_cost_krw
+                return {
+                  model_used: model,
+                  image: function_result.image,
+                  image_type: function_result.image_type,
+                  usage: function_result.usage,
+                  cost: cost,
+                }
+              }
+
               request.input.push(output)
               request.input.push({
                 type: "function_call_output",
@@ -179,11 +221,11 @@ class OpenAiService extends AIServiceBase {
           output_tokens: response.usage.output_tokens,
           total_tokens: response.usage.total_tokens,
         },
-        cost: calculate_cost ? this.calculateCost({
+        cost: this.calculateCost({
           model,
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,
-        }) : null
+        })
       }
     } catch (error) {
       console.error('OpenAI 텍스트 생성 오류:', error.message)
@@ -216,21 +258,20 @@ class OpenAiService extends AIServiceBase {
         quality: 'auto', // low, medium, high
       })
 
-      const image_buffer = Buffer.from(response.data[0].b64_json, "base64")
-      const cost = this.calculateCost({
-        model,
-        input_tokens: response.usage.input_tokens,
-        output_tokens: response.usage.output_tokens,
-      })
       return {
         model_used: model,
-        image: image_buffer,
+        image: response.data[0].b64_json,
+        image_type: 'base64',
         usage: {
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,
           total_tokens: response.usage.total_tokens,
         },
-        cost,
+        cost: this.calculateCost({
+          model,
+          input_tokens: response.usage.input_tokens,
+          output_tokens: response.usage.output_tokens,
+        }),
       }
     } catch (error) {
       console.error('OpenAI 이미지 생성 오류:', error.message)
@@ -246,7 +287,6 @@ class OpenAiService extends AIServiceBase {
     voice = 'sage',
     response_format = 'mp3',
     ai_rule,
-    calculate_cost = false
   }) {
     try {
       const response = await this.client.audio.speech.create({
@@ -263,14 +303,18 @@ class OpenAiService extends AIServiceBase {
       // })
       // Audio API는 ArrayBuffer로 바이너리 오디오 데이터를 반환
       const audio_buffer = Buffer.from(await response.arrayBuffer())
-      if (calculate_cost === true) {
-        debug("TODO: calculate tts cost")
-      }
       return {
         audio: audio_buffer,
-        input_tokens: response.usage?.input_tokens || 0,
-        output_tokens: response.usage?.output_tokens || 0,
-        total_tokens: response.usage?.total_tokens || 0,
+        usage: {
+          input_tokens: response.usage?.input_tokens || 0,
+          output_tokens: response.usage?.output_tokens || 0,
+          total_tokens: response.usage?.total_tokens || 0,
+        },
+        cost: this.calculateCost({
+          model,
+          input_tokens: response.usage?.input_tokens || 0,
+          output_tokens: response.usage?.output_tokens || 0,
+        }),
         model_used: model,
       }
     } catch (error) {

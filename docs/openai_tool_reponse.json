@@ -9,7 +9,7 @@
   "instructions": null,
   "max_output_tokens": null,
   "model": "gpt-4.1-2025-04-14",
-  "output": [무
+  "output": [
     {
       "id": "fc_684002b3162481a3a7964a5b7cbe331f08d71328605629f3",
       "type": "function_call",

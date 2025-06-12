@@ -33,16 +33,7 @@ class ElevenLabsService extends AIServiceBase {
       apiKey: this.api_key,
     })
 
-    // 지원하는 기능 설정
-    this.supports = {
-      text: false,
-      image: false,
-      audio: true,
-      video: false
-    }
-
     // 모델 설정
-
     this.models = [
       {
         model: 'eleven_flash_v2',
