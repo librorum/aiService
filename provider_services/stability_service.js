@@ -6,8 +6,8 @@ import AIServiceBase from '../ai_service_base.js'
  * 이미지, 비디오 기능 제공
  */
 class StabilityService extends AIServiceBase {
-  constructor(api_key = process.env.STABILITY_API_KEY) {
-    super('stability')
+  constructor(service, api_key = process.env.STABILITY_API_KEY) {
+    super(service, 'stability')
     this.api_key = api_key
 
     // 모델 설정

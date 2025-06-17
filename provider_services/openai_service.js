@@ -9,8 +9,8 @@ import OpenAI from 'openai'
  * 텍스트, 이미지, 오디오 기능 제공
  */
 class OpenAiService extends AIServiceBase {
-  constructor(api_key = process.env.OPENAI_API_KEY) {
-    super('openai')
+  constructor(service, api_key = process.env.OPENAI_API_KEY) {
+    super(service, 'openai')
     this.api_key = api_key
     this.client = new OpenAI({
       apiKey: this.api_key,
@@ -72,7 +72,7 @@ class OpenAiService extends AIServiceBase {
     this.default_tts_model = this.tts_models[0]
     this.default_stt_model = this.stt_models[0]
 
-    this.registerTool({
+    service.registerTool({
       name: 'image_generator',
       description: '이미지 생성',
       parameters: {

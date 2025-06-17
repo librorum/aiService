@@ -6,8 +6,8 @@ import AIServiceBase from '../ai_service_base.js'
  * 비디오 생성 기능 제공
  */
 class RunwayService extends AIServiceBase {
-  constructor(api_key = process.env.RUNWAY_API_KEY) {
-    super('runway')
+  constructor(service, api_key = process.env.RUNWAY_API_KEY) {
+    super(service, 'runway')
     this.api_key = api_key
 
   }

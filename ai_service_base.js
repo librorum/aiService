@@ -12,7 +12,7 @@ const api_margin = parseFloat(process.env.API_MARGIN || '1.2')
 
 
 class AIServiceBase {
-  constructor(provider_name) {
+  constructor(service, provider_name) {
     // 이 클래스가 직접 인스턴스화되는 것을 방지합니다
     this.provider_name = provider_name
     if (this.constructor === AIServiceBase) {
@@ -25,8 +25,8 @@ class AIServiceBase {
     debug('api_margin', api_margin)
 
     this.models_info = []
-    this.tools = {}
-    this.functions = {}
+    this.tools = service.tools || {}
+    this.functions = service.functions || {}
   }
 
   /**
@@ -283,14 +283,6 @@ class AIServiceBase {
   //     },
   //   },
   // ];
-  registerTool({ name, description, parameters, func }) {
-    this.tools[name] = {
-      name,
-      description,
-      parameters,
-    }
-    this.functions[name] = func
-  }
 }
 
 export default AIServiceBase

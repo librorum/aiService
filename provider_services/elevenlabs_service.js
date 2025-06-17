@@ -26,8 +26,8 @@ import AIServiceBase from '../ai_service_base.js'
  * 텍스트-투-스피치 기능 제공
  */
 class ElevenLabsService extends AIServiceBase {
-  constructor(api_key = process.env.ELEVENLABS_API_KEY) {
-    super()
+  constructor(service, api_key = process.env.ELEVENLABS_API_KEY) {
+    super(service, 'elevenlabs')
     this.api_key = api_key
     this.client = new ElevenLabsClient({
       apiKey: this.api_key,

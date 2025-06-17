@@ -288,27 +288,67 @@ console.log(cost);    // Cost information
 
 ### Custom Tools (사용자 정의 도구)
 
-First, you need to register tools using `registerTool` in `index.js`:
+You can register custom tools directly in your main application using the `registerTool` method from the aiService instance:
 
- 먼저 `index.js`에서 `registerTool`을 사용하여 도구를 등록해야 합니다:
+사용자 정의 도구를 aiService 인스턴스의 `registerTool` 메서드를 사용하여 메인 애플리케이션에서 직접 등록할 수 있습니다:
 
 ```javascript
 import aiService from '@librorum/aiservice';
 
-// Register the built-in calculator tool (already available by default)
-// 내장 계산기 도구 등록 (기본적으로 이미 사용 가능)
-aiService.registerTool('calculator', {
+// Register a custom calculator tool
+// 사용자 정의 계산기 도구 등록
+aiService.registerTool({
   name: 'calculator',
-  description: 'Perform basic mathematical calculations',
+  description: 'Evaluates a mathematical expression.',
   parameters: {
     type: 'object',
     properties: {
       expression: {
         type: 'string',
-        description: 'Mathematical expression to evaluate'
+        description: 'The mathematical expression to evaluate, e.g., "1+2*3"',
+      },
+    },
+    required: ['expression'],
+    additionalProperties: false,
+  },
+  func: ({ expression }) => {
+    try {
+      // 입력된 수식을 안전하게 평가합니다.
+      if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
+        throw new Error("Invalid expression")
+      }
+      const result = Function(`"use strict"; return (${expression})`)()
+      return result
+    } catch (error) {
+      return "Invalid expression"
+    }
+  }
+});
+
+// Register a custom weather tool
+// 사용자 정의 날씨 도구 등록
+aiService.registerTool({
+  name: 'weather',
+  description: 'Get current weather information for a location',
+  parameters: {
+    type: 'object',
+    properties: {
+      location: {
+        type: 'string',
+        description: 'City name or coordinates'
+      },
+      unit: {
+        type: 'string',
+        enum: ['celsius', 'fahrenheit'],
+        description: 'Temperature unit'
       }
     },
-    required: ['expression']
+    required: ['location']
+  },
+  func: ({ location, unit = 'celsius' }) => {
+    // 실제 날씨 API 호출 로직을 여기에 구현
+    // Implement actual weather API call logic here
+    return `Current weather in ${location}: 22°${unit === 'celsius' ? 'C' : 'F'}, sunny`;
   }
 });
 
@@ -316,13 +356,14 @@ aiService.registerTool('calculator', {
 // 도구 등록 후, AI 요청에서 사용할 수 있습니다
 const { text, usage, cost } = await aiService.generateText({
   provider: 'openai',
-  prompt: 'Calculate the sum of numbers from 1 to 10: 1+2+3+4+5+6+7+8+9+10',
-  user_tools: ['calculator'],  // Use registered calculator tool
+  prompt: 'Calculate the sum of numbers from 1 to 10 and check the weather in Seoul',
+  user_tools: ['calculator', 'weather'],  // Use registered tools
   temperature: 0.1
 });
 
-console.log(text);    // AI response with tool-assisted calculations
+console.log(text);    // AI response with tool-assisted calculations and weather info
 console.log(usage);   // Usage information
+console.log(cost);    // Cost information
 ```
 
 ### Testing
@@ -348,7 +389,7 @@ await aiService.test('openai', 'audio');       // TTS/STT only
 await aiService.test('openai', 'video');       // Video generation only
 
 // Test with system tools (web search)
-// 시스템 도구(웹 검색)와 함께 테스트
+// 웹 검색을 위한 시스템 도구와 함께 테스트
 await aiService.test('openai', 'text', ['web_search']);
 await aiService.test('anthropic', null, ['web_search']); // All features with web search
 await aiService.test(null, 'text', ['web_search']); // All providers, text generation with web search

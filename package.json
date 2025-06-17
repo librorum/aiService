@@ -1,6 +1,6 @@
 {
   "name": "@librorum/aiservice",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Unified library for easy integration of multiple AI APIs",
   "keywords": [
     "ai",

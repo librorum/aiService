@@ -10,8 +10,8 @@ import Anthropic from '@anthropic-ai/sdk'
  * 텍스트 기능만 제공 (Claude)
  */
 class AnthropicService extends AIServiceBase {
-  constructor(api_key = process.env.ANTHROPIC_API_KEY) {
-    super('anthropic')
+  constructor(context, api_key = process.env.ANTHROPIC_API_KEY) {
+    super(context, 'anthropic')
     this.api_key = api_key
 
     this.client = new Anthropic({

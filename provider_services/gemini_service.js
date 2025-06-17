@@ -13,8 +13,8 @@ import { GoogleGenAI, Type, Modality } from '@google/genai'
  * 전체 음성 옵션 테스트: https://aistudio.google.com/generate-speech
  */
 class GeminiService extends AIServiceBase {
-  constructor(api_key = process.env.GEMINI_API_KEY) {
-    super('gemini')
+  constructor(service, api_key = process.env.GEMINI_API_KEY) {
+    super(service, 'gemini')
     this.api_key = api_key
     this.client = new GoogleGenAI(this.api_key)
 

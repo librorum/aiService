@@ -29,13 +29,16 @@ class AIService {
     // 서비스 시작시에 API 키 유효성 체크
     this.checkApiKey()
 
+    this.tools = {}
+    this.functions = {}
     this.provider_services = {}
-    this.provider_services['openai'] = new OpenAiService()
-    this.provider_services['anthropic'] = new AnthropicService()
-    this.provider_services['gemini'] = new GeminiService()
-    this.provider_services['stability'] = new StabilityService()
-    this.provider_services['runway'] = new RunwayService()
-    this.provider_services['elevenlabs'] = new ElevenLabsService()
+    this.provider_services['openai'] = new OpenAiService(this)
+    this.provider_services['anthropic'] = new AnthropicService(this)
+    this.provider_services['gemini'] = new GeminiService(this)
+    this.provider_services['stability'] = new StabilityService(this)
+    this.provider_services['runway'] = new RunwayService(this)
+    this.provider_services['elevenlabs'] = new ElevenLabsService(this)
+
   }
 
   /**
@@ -165,6 +168,15 @@ class AIService {
       }
     }
     return null
+  }
+
+  registerTool({ name, description, parameters, func }) {
+    this.tools[name] = {
+      name,
+      description,
+      parameters,
+    }
+    this.functions[name] = func
   }
 
   async generateText({
@@ -327,7 +339,7 @@ class AIService {
         return { error: message }
       }
       if (user_tools.includes('calculator')) {
-        provider_service.registerTool({
+        this.registerTool({
           name: 'calculator',
           description: 'Evaluates a mathematical expression.',
           parameters: {
