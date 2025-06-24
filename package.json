@@ -37,12 +37,12 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
-    "@elevenlabs/elevenlabs-js": "^2.1.0",
-    "@google/genai": "^1.4.0",
-    "axios": "^1.9.0",
+    "@elevenlabs/elevenlabs-js": "^2.2.0",
+    "@google/genai": "^1.5.1",
+    "axios": "^1.10.0",
     "debug": "^4.4.1",
     "dotenv": "^16.5.0",
-    "openai": "^4.103.0",
+    "openai": "^4.104.0",
     "speaker": "^0.5.5",
     "web-audio-api": "^0.2.2"
   },
