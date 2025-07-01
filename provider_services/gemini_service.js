@@ -140,6 +140,7 @@ class GeminiService extends AIServiceBase {
     ai_rule,
     system_tools = [], // ['web_search']
     user_tools = [],
+    conversation_history = null, // 대화 히스토리 추가
   }) {
     try {
       // Tool 설정
@@ -176,15 +177,29 @@ class GeminiService extends AIServiceBase {
 
       const genAI = this.client
 
+      // 메시지 배열 구성 - Gemini 형식
+      const contents = []
+      
+      // 대화 히스토리가 있으면 추가 (Gemini 형식으로 변환)
+      if (conversation_history && Array.isArray(conversation_history)) {
+        for (const msg of conversation_history) {
+          contents.push({
+            role: msg.role === 'assistant' ? 'model' : msg.role, // Gemini는 assistant 대신 model 사용
+            parts: [{ text: msg.content }]
+          })
+        }
+      }
+      
+      // 현재 사용자 프롬프트 추가
+      contents.push({
+        role: 'user',
+        parts: [{ text: prompt }]
+      })
+
       // API 호출 매개변수 설정
       const request_params = {
         model: model,
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
-          }
-        ],
+        contents: contents,
       }
 
       // Tools가 있으면 config에 추가
@@ -259,6 +274,13 @@ class GeminiService extends AIServiceBase {
 
       const usage = result.usageMetadata || {}
 
+      // 대화 히스토리 업데이트
+      const updated_conversation_history = this.updateConversationHistory(
+        conversation_history, 
+        prompt, 
+        response_text
+      )
+
       return {
         model_used: model,
         text: response_text,
@@ -272,7 +294,8 @@ class GeminiService extends AIServiceBase {
           model,
           input_tokens: usage.promptTokenCount || 0,
           output_tokens: usage.candidatesTokenCount || 0,
-        })
+        }),
+        updated_conversation_history // 업데이트된 대화 히스토리 반환
       }
     } catch (error) {
       console.error('Gemini 텍스트 생성 오류:', error.message)

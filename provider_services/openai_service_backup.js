@@ -93,7 +93,7 @@ class OpenAiService extends AIServiceBase {
   }
 
   /**
-   * 텍스트 생성 - OpenAI Responses API를 사용하여 모든 요청을 처리
+   * 텍스트 생성 (챗 컴플리션)
    * @param {string} prompt - 사용자 프롬프트
    * @param {Object} options - 추가 옵션 (모델, 온도, 최대 토큰 등)
    * @returns {Promise<Object>} 응답 객체
@@ -115,101 +115,20 @@ class OpenAiService extends AIServiceBase {
       model = model || this.default_text_model.model
       debug('model', model)
 
-      // 입력 구성
-      let input
-      
-      if (use_conversation_state && previous_response_id) {
-        // Conversation State 방식: 이전 응답 ID가 있으면 새 메시지만 전송
-        input = [{ role: 'user', content: prompt }]
-      } else if (conversation_history && conversation_history.length > 0) {
-        // 기존 방식: conversation_history를 Responses API 형식으로 변환
-        input = [...conversation_history, { role: 'user', content: prompt }]
-      } else {
-        // 첫 번째 메시지인 경우
-        const messages = []
-        if (ai_rule) {
-          messages.push({ role: 'system', content: ai_rule })
-        }
-        messages.push({ role: 'user', content: prompt })
-        input = messages
-      }
-
-      const request = {
+      // 모든 요청을 Responses API로 처리
+      return await this.generateTextWithResponsesAPI({
+        prompt,
         model,
-        input,
+        temperature,
+        max_tokens,
+        ai_rule,
+        system_tools,
+        user_tools,
+        conversation_history,
+        use_conversation_state,
         store,
-        temperature
-        // max_tokens는 Responses API에서 지원하지 않음
-        // max_completion_tokens도 현재 지원하지 않는 것으로 보임
-      }
-
-      if (previous_response_id) {
-        request.previous_response_id = previous_response_id
-      }
-
-      // Tools 설정 (기존 로직과 동일)
-      let tools = []
-      if (system_tools.length > 0) {
-        tools = [...system_tools.map(tool_name => {
-          if (tool_name === 'web_search') {
-            return {
-              type: 'web_search_preview'
-            }
-          }
-        }).filter(tool => tool)]
-      }
-
-      if (user_tools.length > 0) {
-        const function_tools = user_tools.map(tool_name => {
-          const tool = this.tools[tool_name]
-          if (tool) {
-            return {
-              type: 'function',
-              function: tool
-            }
-          }
-          return null
-        }).filter(tool => tool !== null)
-
-        tools = [...tools, ...function_tools]
-      }
-
-      if (tools.length > 0) {
-        request.tools = tools
-      }
-
-      // Responses API 호출
-      const response = await this.client.responses.create(request)
-
-      // conversation_history 업데이트 (기존 방식 호환성을 위해)
-      let updated_conversation_history = null
-      if (use_conversation_state !== true) {
-        // Conversation State를 명시적으로 사용하지 않는 경우 conversation_history 업데이트
-        updated_conversation_history = conversation_history ? [...conversation_history] : []
-        if (ai_rule && updated_conversation_history.length === 0) {
-          updated_conversation_history.push({ role: 'system', content: ai_rule })
-        }
-        updated_conversation_history.push({ role: 'user', content: prompt })
-        updated_conversation_history.push({ role: 'assistant', content: response.output_text })
-      }
-
-      return {
-        model_used: model,
-        text: response.output_text,
-        usage: {
-          input_tokens: response.usage?.input_tokens || 0,
-          output_tokens: response.usage?.output_tokens || 0,
-          total_tokens: response.usage?.total_tokens || 0,
-        },
-        cost: this.calculateCost({
-          model,
-          input_tokens: response.usage?.input_tokens || 0,
-          output_tokens: response.usage?.output_tokens || 0,
-        }),
-        response_id: response.id, // 다음 요청에서 사용할 수 있도록 응답 ID 반환
-        stored: store,
-        updated_conversation_history: updated_conversation_history // 기존 방식 호환성
-      }
+        previous_response_id
+      })
     } catch (error) {
       console.error('OpenAI 텍스트 생성 오류:', error.message)
       return {
@@ -221,6 +140,119 @@ class OpenAiService extends AIServiceBase {
       }
     }
   }
+
+  // OpenAI Responses API를 사용하여 모든 요청을 처리하는 통합 메서드
+  async generateTextWithResponsesAPI({
+    prompt,
+    model,
+    temperature,
+    max_tokens,
+    ai_rule,
+    system_tools,
+    user_tools,
+    conversation_history,
+    use_conversation_state,
+    store,
+    previous_response_id
+  }) {
+    // 입력 구성
+    let input
+    
+    if (use_conversation_state && previous_response_id) {
+      // Conversation State 방식: 이전 응답 ID가 있으면 새 메시지만 전송
+      input = [{ role: 'user', content: prompt }]
+    } else if (conversation_history && conversation_history.length > 0) {
+      // 기존 방식: conversation_history를 Responses API 형식으로 변환
+      input = [...conversation_history, { role: 'user', content: prompt }]
+    } else {
+      // 첫 번째 메시지인 경우
+      const messages = []
+      if (ai_rule) {
+        messages.push({ role: 'system', content: ai_rule })
+      }
+      messages.push({ role: 'user', content: prompt })
+      input = messages
+    }
+
+    const request = {
+      model,
+      input,
+      store,
+      temperature
+      // max_tokens는 Responses API에서 지원하지 않음
+      // max_completion_tokens도 현재 지원하지 않는 것으로 보임
+    }
+
+    if (previous_response_id) {
+      request.previous_response_id = previous_response_id
+    }
+
+    // Tools 설정 (기존 로직과 동일)
+    let tools = []
+    if (system_tools.length > 0) {
+      tools = [...system_tools.map(tool_name => {
+        if (tool_name === 'web_search') {
+          return {
+            type: 'web_search_preview'
+          }
+        }
+      }).filter(tool => tool)]
+    }
+
+    if (user_tools.length > 0) {
+      const function_tools = user_tools.map(tool_name => {
+        const tool = this.tools[tool_name]
+        if (tool) {
+          return {
+            type: 'function',
+            function: tool
+          }
+        }
+        return null
+      }).filter(tool => tool !== null)
+
+      tools = [...tools, ...function_tools]
+    }
+
+    if (tools.length > 0) {
+      request.tools = tools
+    }
+
+    // Responses API 호출
+    const response = await this.client.responses.create(request)
+
+    // conversation_history 업데이트 (기존 방식 호환성을 위해)
+    let updated_conversation_history = null
+    if (use_conversation_state !== true) {
+      // Conversation State를 명시적으로 사용하지 않는 경우 conversation_history 업데이트
+      updated_conversation_history = conversation_history ? [...conversation_history] : []
+      if (ai_rule && updated_conversation_history.length === 0) {
+        updated_conversation_history.push({ role: 'system', content: ai_rule })
+      }
+      updated_conversation_history.push({ role: 'user', content: prompt })
+      updated_conversation_history.push({ role: 'assistant', content: response.output_text })
+    }
+
+    return {
+      model_used: model,
+      text: response.output_text,
+      usage: {
+        input_tokens: response.usage?.input_tokens || 0,
+        output_tokens: response.usage?.output_tokens || 0,
+        total_tokens: response.usage?.total_tokens || 0,
+      },
+      cost: this.calculateCost({
+        model,
+        input_tokens: response.usage?.input_tokens || 0,
+        output_tokens: response.usage?.output_tokens || 0,
+      }),
+      response_id: response.id, // 다음 요청에서 사용할 수 있도록 응답 ID 반환
+      stored: store,
+      conversation_history: updated_conversation_history // 기존 방식 호환성
+    }
+  }
+
+
 
   async generateImage({
     model = this.default_image_model.model,

@@ -77,12 +77,32 @@ class AnthropicService extends AIServiceBase {
     ai_rule,
     system_tools = [], // ['web_search']
     user_tools = [],
+    conversation_history = null, // 대화 히스토리 추가
   }) {
     try {
       model = model || this.default_text_model.model
       debug('model', model)
 
-      const messages = [{
+      // 메시지 배열 구성 - Anthropic 형식
+      const messages = []
+      
+      // 대화 히스토리가 있으면 추가 (Anthropic 형식으로 변환)
+      if (conversation_history && Array.isArray(conversation_history)) {
+        for (const msg of conversation_history) {
+          messages.push({
+            role: msg.role,
+            content: [
+              {
+                type: 'text',
+                text: msg.content
+              }
+            ]
+          })
+        }
+      }
+      
+      // 현재 사용자 프롬프트 추가
+      messages.push({
         role: 'user',
         content: [
           {
@@ -90,7 +110,7 @@ class AnthropicService extends AIServiceBase {
             text: prompt
           }
         ]
-      }]
+      })
 
       let request = {
         model: model,
@@ -196,6 +216,13 @@ class AnthropicService extends AIServiceBase {
         response_text += (response2.content.find(block => block.type === 'text'))?.text || ''
       }
 
+      // 대화 히스토리 업데이트
+      const updated_conversation_history = this.updateConversationHistory(
+        conversation_history, 
+        prompt, 
+        response_text
+      )
+
       return {
         model_used: model,
         text: response_text,
@@ -209,7 +236,8 @@ class AnthropicService extends AIServiceBase {
           model,
           input_tokens: response1.usage.input_tokens,
           output_tokens: response1.usage.output_tokens,
-        })
+        }),
+        updated_conversation_history // 업데이트된 대화 히스토리 반환
       }
     } catch (error) {
       console.error('Anthropic 텍스트 생성 오류:', error.message)

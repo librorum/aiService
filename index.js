@@ -186,7 +186,11 @@ class AIService {
     ai_rule,
     temperature = 0.7,
     max_tokens = 2000,
-    web_search = false
+    web_search = false,
+    conversation_history = null, // 기존 방식 (모든 provider 지원)
+    use_conversation_state = false, // OpenAI Responses API 사용 여부
+    store = true, // OpenAI Responses API에서 대화 저장 여부
+    previous_response_id = null, // OpenAI Responses API용 이전 응답 ID
   }) {
     if (!provider && model) {
       provider = this.getProviderByModel(model)
@@ -195,13 +199,17 @@ class AIService {
     const ai_provider = this.provider_services[provider]
 
     const start_time = new Date()
-    const { text, usage, error, cost, model_used } = await ai_provider.generateText({
+    const result = await ai_provider.generateText({
       prompt,
       model,
       temperature,
       max_tokens,
       ai_rule,
-      web_search
+      web_search,
+      conversation_history,
+      use_conversation_state, // OpenAI 전용
+      store, // OpenAI 전용
+      previous_response_id // OpenAI 전용
     })
 
     const end_time = new Date()
@@ -209,13 +217,10 @@ class AIService {
     debug(`처리 시간: ${execution_time}초`)
 
     return {
-      provider,
-      model: model_used,
-      text: text || '',
-      usage,
-      cost,
-      error,
+      ...result,
       execution_time,
+      conversation_history: result.updated_conversation_history || conversation_history,
+      response_id: result.response_id // OpenAI Responses API의 응답 ID (있는 경우)
     }
   }
 
@@ -325,7 +330,7 @@ class AIService {
   /**
    * 하나 또는 모든 AI 프로바이더 테스트
    * @param {string} [providerName] - 테스트할 프로바이더 이름 (선택사항). 제공하지 않으면 모든 프로바이더를 테스트합니다.
-   * @param {string} [feature] - 테스트할 기능 ('text', 'image', 'audio', 'video'). null인 경우 모든 지원 기능을 테스트.
+   * @param {string} [feature] - 테스트할 기능 ('text', 'image', 'audio', 'video', 'conversation', 'conversation_state'). null인 경우 모든 지원 기능을 테스트.
    * @param {Array} [system_tools] - 사용할 시스템 도구 배열 (예: ['web_search'])
    * @param {Array} [user_tools] - 사용자 도구 배열 (예: ['web_search'])
    */
@@ -368,7 +373,21 @@ class AIService {
         })
       }
       debug(`\n${providerName} test begin(feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
-      await provider_service.test({ feature, system_tools, user_tools })
+      
+      // conversation 관련 테스트는 별도 처리
+      if (feature === 'conversation') {
+        await this.testConversation(providerName)
+      } else if (feature === 'conversation_state') {
+        if (providerName.toLowerCase() === 'openai') {
+          await this.testConversationState()
+        } else {
+          debug(`Conversation State는 OpenAI에서만 지원됩니다. ${providerName}에서는 기존 conversation 테스트를 실행합니다.`)
+          await this.testConversation(providerName)
+        }
+      } else {
+        await provider_service.test({ feature, system_tools, user_tools })
+      }
+      
       debug(`${providerName} test completed`)
       return { status: 'completed', provider: providerName, feature, system_tools, user_tools }
     } else {
@@ -376,12 +395,134 @@ class AIService {
       const results = {}
       for (const [name, provider_service] of Object.entries(this.provider_services)) {
         debug(`\n${name} test begin(feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
-        await provider_service.test({ feature, system_tools, user_tools })
+        
+        // conversation 관련 테스트는 별도 처리
+        if (feature === 'conversation') {
+          await this.testConversation(name)
+        } else if (feature === 'conversation_state') {
+          if (name.toLowerCase() === 'openai') {
+            await this.testConversationState()
+          } else {
+            debug(`Conversation State는 OpenAI에서만 지원됩니다. ${name}에서는 기존 conversation 테스트를 실행합니다.`)
+            await this.testConversation(name)
+          }
+        } else {
+          await provider_service.test({ feature, system_tools, user_tools })
+        }
+        
         debug(`${name} test completed`)
         results[name] = { status: 'completed', feature, system_tools, user_tools }
       }
       return { status: 'completed', results }
     }
+  }
+
+  // 대화 히스토리 테스트 함수 (기존 방식)
+  async testConversation(provider = 'openai') {
+    console.log(`\n=== ${provider.toUpperCase()} 대화 히스토리 테스트 (기존 방식) ===`)
+    
+    let conversation_history = null
+    
+    // 첫 번째 대화
+    console.log('\n1. 첫 번째 질문: "내 이름을 김철수라고 기억해줘"')
+    const response1 = await this.generateText({
+      provider,
+      prompt: '내 이름을 김철수라고 기억해줘',
+      conversation_history
+    })
+    console.log('응답:', response1.text)
+    conversation_history = response1.conversation_history
+    
+    // 두 번째 대화
+    console.log('\n2. 두 번째 질문: "내 이름이 뭐야?"')
+    const response2 = await this.generateText({
+      provider,
+      prompt: '내 이름이 뭐야?',
+      conversation_history
+    })
+    console.log('응답:', response2.text)
+    conversation_history = response2.conversation_history
+    
+    // 세 번째 대화
+    console.log('\n3. 세 번째 질문: "내 이름을 영어로 써줘"')
+    const response3 = await this.generateText({
+      provider,
+      prompt: '내 이름을 영어로 써줘',
+      conversation_history
+    })
+    console.log('응답:', response3.text)
+    conversation_history = response3.conversation_history
+    
+    // 네 번째 대화
+    console.log('\n4. 네 번째 질문: "지금까지 우리가 나눈 대화를 요약해줘"')
+    const response4 = await this.generateText({
+      provider,
+      prompt: '지금까지 우리가 나눈 대화를 요약해줘',
+      conversation_history
+    })
+    console.log('응답:', response4.text)
+    
+    console.log('\n=== 대화 히스토리 테스트 완료 ===')
+  }
+
+  // OpenAI Conversation State 테스트 함수 (새로운 방식)
+  async testConversationState() {
+    console.log('\n=== OpenAI Conversation State 테스트 (새로운 방식) ===')
+    
+    let previous_response_id = null
+    
+    // 첫 번째 대화
+    console.log('\n1. 첫 번째 질문: "내 이름을 김철수라고 기억해줘"')
+    const response1 = await this.generateText({
+      provider: 'openai',
+      prompt: '내 이름을 김철수라고 기억해줘',
+      use_conversation_state: true,
+      store: true
+    })
+    console.log('응답:', response1.text)
+    console.log('응답 ID:', response1.response_id)
+    previous_response_id = response1.response_id
+    
+    // 두 번째 대화
+    console.log('\n2. 두 번째 질문: "내 이름이 뭐야?"')
+    const response2 = await this.generateText({
+      provider: 'openai',
+      prompt: '내 이름이 뭐야?',
+      use_conversation_state: true,
+      store: true,
+      previous_response_id
+    })
+    console.log('응답:', response2.text)
+    console.log('응답 ID:', response2.response_id)
+    previous_response_id = response2.response_id
+    
+    // 세 번째 대화
+    console.log('\n3. 세 번째 질문: "내 이름을 영어로 써줘"')
+    const response3 = await this.generateText({
+      provider: 'openai',
+      prompt: '내 이름을 영어로 써줘',
+      use_conversation_state: true,
+      store: true,
+      previous_response_id
+    })
+    console.log('응답:', response3.text)
+    console.log('응답 ID:', response3.response_id)
+    previous_response_id = response3.response_id
+    
+    // 네 번째 대화
+    console.log('\n4. 네 번째 질문: "지금까지 우리가 나눈 대화를 요약해줘"')
+    const response4 = await this.generateText({
+      provider: 'openai',
+      prompt: '지금까지 우리가 나눈 대화를 요약해줘',
+      use_conversation_state: true,
+      store: true,
+      previous_response_id
+    })
+    console.log('응답:', response4.text)
+    console.log('응답 ID:', response4.response_id)
+    
+    console.log('\n=== Conversation State 테스트 완료 ===')
+    console.log('장점: 매번 전체 대화 히스토리를 전송하지 않아 토큰 효율적!')
   }
 }
 
@@ -408,30 +549,29 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // 도움말 출력 함수
   const showHelp = () => {
     console.log('\n사용법:')
-    console.log('  node index.js [test_type] [provider]')
-    console.log('  node index.js [provider]\n')
-
-    console.log('테스트 유형 (test_type):')
-    console.log('  text     - 텍스트 생성 테스트 (특정 기능만 테스트)')
-    console.log('  image    - 이미지 생성 테스트 (특정 기능만 테스트)')
-    console.log('  tts      - 텍스트 음성 변환 테스트 (특정 기능만 테스트)')
-    console.log('  video    - 비디오 생성 테스트 (특정 기능만 테스트)')
-    console.log('  stt      - 음성 인식 테스트 (특정 기능만 테스트)')
-    console.log('  websearch - 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
-
-    console.log('사용 가능한 프로바이더 (provider):')
-    console.log(`  ${availableProviders.replace(/, /g, '\n  ')}\n`)
-
+    console.log('  node index.js <명령어> [옵션]')
+    console.log('')
+    console.log('명령어:')
+    console.log('  text [provider]           - 텍스트 생성 테스트')
+    console.log('  image [provider]          - 이미지 생성 테스트')
+    console.log('  tts [provider]            - 음성 합성 테스트')
+    console.log('  stt [provider]            - 음성 인식 테스트')
+    console.log('  video [provider]          - 비디오 생성 테스트')
+    console.log('  websearch [provider]      - 웹 검색 기능 테스트')
+    console.log('  conversation [provider]   - 대화 히스토리 테스트 (기존 방식)')
+    console.log('  conversation_state        - OpenAI Conversation State 테스트 (새로운 방식)')
+    console.log('')
+    console.log('Provider 옵션: openai, anthropic, gemini')
+    console.log('')
     console.log('예시:')
-    console.log('  node index.js                     - 도움말 표시')
-    console.log('  node index.js openai              - OpenAI 프로바이더의 모든 기능 테스트')
-    console.log('  node index.js text                - 모든 프로바이더의 텍스트 생성 기능만 테스트')
-    console.log('  node index.js image openai        - OpenAI의 이미지 생성 기능만 테스트')
-    console.log('  node index.js tts elevenlabs      - ElevenLabs의 TTS 기능만 테스트')
-    console.log('  node index.js websearch           - 웹 검색 도구를 사용한 텍스트 생성 테스트')
-    console.log('  node index.js websearch openai    - OpenAI에서 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
-    console.log('  node index.js tool openai    - OpenAI에서 웹 검색 도구를 사용한 텍스트 생성 테스트\n')
-
+    console.log('  node index.js text openai')
+    console.log('  node index.js conversation anthropic')
+    console.log('  node index.js conversation_state')
+    console.log('  node index.js websearch gemini')
+    console.log('')
+    console.log('통합 테스트 (aiService.test() 사용):')
+    console.log('  node index.js openai                 - OpenAI 모든 기능 테스트')
+    console.log('  node index.js                        - 모든 provider 모든 기능 테스트')
     process.exit(0)
   }
 
@@ -441,7 +581,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
 
   // 첫 번째 인자가 프로바이더 이름인지 확인
-  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch', 'tool', 'image_generator'].includes(firstArg)) {
+  if (firstArg && !['text', 'image', 'tts', 'video', 'stt', 'websearch', 'tool', 'image_generator', 'conversation', 'conversation_state'].includes(firstArg)) {
     // 프로바이더 지정 테스트 실행
     debug(`${firstArg} 프로바이더 테스트 실행`)
     aiService.test(firstArg).then(() => {
@@ -462,6 +602,54 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         debug(`${testType || '기본'} 테스트 실행`)
         await aiService.test(null, feature, system_tools, user_tools)
       }
+    }
+
+    const testConversation = async (providerName = 'openai') => {
+      debug('=== 대화 히스토리 테스트 시작 ===')
+      
+      let conversation_history = null
+      
+      // 첫 번째 대화
+      debug('첫 번째 질문: 내 이름을 김철수라고 기억해줘')
+      const response1 = await aiService.generateText({
+        provider: providerName,
+        prompt: '내 이름을 김철수라고 기억해줘',
+        conversation_history
+      })
+      debug('첫 번째 응답:', response1.text)
+      conversation_history = response1.conversation_history
+      
+      // 두 번째 대화 (이전 대화 기억하는지 확인)
+      debug('두 번째 질문: 내 이름이 뭐야?')
+      const response2 = await aiService.generateText({
+        provider: providerName,
+        prompt: '내 이름이 뭐야?',
+        conversation_history
+      })
+      debug('두 번째 응답:', response2.text)
+      conversation_history = response2.conversation_history
+      
+      // 세 번째 대화 (더 복잡한 컨텍스트)
+      debug('세 번째 질문: 내가 좋아하는 색깔은 파란색이야')
+      const response3 = await aiService.generateText({
+        provider: providerName,
+        prompt: '내가 좋아하는 색깔은 파란색이야',
+        conversation_history
+      })
+      debug('세 번째 응답:', response3.text)
+      conversation_history = response3.conversation_history
+      
+      // 네 번째 대화 (이전 모든 정보 기억하는지 확인)
+      debug('네 번째 질문: 내 이름과 좋아하는 색깔을 말해줘')
+      const response4 = await aiService.generateText({
+        provider: providerName,
+        prompt: '내 이름과 좋아하는 색깔을 말해줘',
+        conversation_history
+      })
+      debug('네 번째 응답:', response4.text)
+      
+      debug('=== 대화 히스토리 테스트 완료 ===')
+      debug('최종 대화 히스토리:', JSON.stringify(response4.conversation_history, null, 2))
     }
 
     switch (testType) {
@@ -496,6 +684,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       case 'stt':
         debug('STT 테스트 실행')
         testRunner('audio').then(() => debug('STT 테스트 완료'))
+        break
+      case 'conversation':
+        debug('대화 히스토리 테스트 실행')
+        testConversation(provider).then(() => debug('대화 히스토리 테스트 완료'))
+        break
+      case 'conversation_state':
+        debug('OpenAI Conversation State 테스트 실행')
+        aiService.testConversationState().then(() => debug('OpenAI Conversation State 테스트 완료'))
         break
       default:
         if (testType) {

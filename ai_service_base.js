@@ -42,9 +42,35 @@ class AIServiceBase {
     max_tokens = 500,
     ai_rule,
     tools,
+    conversation_history = null
 
   }) {
     throw new Error('generateText 메서드가 구현되지 않았습니다.')
+  }
+
+  /**
+   * 대화 히스토리 업데이트 헬퍼 메서드
+   * @param {Array|null} conversation_history - 기존 대화 히스토리
+   * @param {string} prompt - 사용자 프롬프트
+   * @param {string} response - AI 응답
+   * @returns {Array} 업데이트된 대화 히스토리
+   */
+  updateConversationHistory(conversation_history, prompt, response) {
+    const history = conversation_history || []
+    
+    // 사용자 메시지 추가
+    history.push({
+      role: 'user',
+      content: prompt
+    })
+    
+    // AI 응답 추가
+    history.push({
+      role: 'assistant', 
+      content: response
+    })
+    
+    return history
   }
 
   async generateImage({

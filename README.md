@@ -1,69 +1,44 @@
 # AI Service SDK
 
-A unified Node.js SDK for integrating multiple AI service providers with a consistent API interface.
+🚀 **A unified Node.js SDK for integrating multiple AI service providers with a consistent API interface.**
 
- 여러 AI 서비스 제공업체를 일관된 API 인터페이스로 통합하는 통합 Node.js SDK입니다.
+여러 AI 서비스 제공업체를 일관된 API 인터페이스로 통합하는 통합 Node.js SDK입니다.
 
-## Features
+## ✨ Key Features
 
-- **Multi-provider support**: OpenAI, Anthropic, Google Gemini, Stability AI, Runway, ElevenLabs
-- **Unified API**: Consistent interface across all providers
-- **Multiple AI capabilities**: Text generation, image generation, text-to-speech, video generation
-- **Web search integration**: Real-time web search capabilities with integrated AI processing
-- **Cost calculation**: Optional cost tracking for API usage
-- **Environment-based configuration**: Easy setup with environment variables
+- 🤖 **Multi-provider support**: OpenAI, Anthropic, Google Gemini, Stability AI, Runway, ElevenLabs
+- 🔄 **Unified API**: Consistent interface across all providers
+- 💬 **Advanced Conversation Management**: Support for both conversation history and server-side conversation state
+- 🌐 **Web Search Integration**: Real-time web search capabilities with integrated AI processing
+- 🛠️ **Custom Tools**: Register and use custom functions with AI models
+- 💰 **Cost Tracking**: Automatic cost calculation for API usage (USD & KRW)
+- ⚙️ **Environment-based Configuration**: Easy setup with environment variables
+- 🧪 **Comprehensive Testing**: Built-in test suite for all features
 
- **기능**:
-- **다중 제공업체 지원**: OpenAI, Anthropic, Google Gemini, Stability AI, Runway, ElevenLabs
-- **통합 API**: 모든 제공업체에서 일관된 인터페이스
-- **다양한 AI 기능**: 텍스트 생성, 이미지 생성, 텍스트 음성 변환, 비디오 생성
-- **웹 검색 통합**: 실시간 웹 검색 기능과 AI 처리의 통합
-- **비용 계산**: API 사용량에 대한 선택적 비용 추적
-- **환경 기반 구성**: 환경 변수로 쉬운 설정
+## 🎯 Supported AI Providers
 
-## Supported AI Providers( 지원되는 AI 제공업체)
+| Provider | Text | Image | TTS | Video | Web Search | Conversation |
+|----------|------|-------|-----|-------|------------|-------------|
+| **OpenAI** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ (History + State) |
+| **Anthropic** | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ (History) |
+| **Google Gemini** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ (History) |
+| **Stability AI** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Runway** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **ElevenLabs** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
 
-| Provider | Text Generation | Image Generation | Text-to-Speech | Video Generation | Web Search |
-|----------|----------------|------------------|----------------|------------------|------------|
-| OpenAI | ✓ | ✓ | ✓ | | ✓ |
-| Anthropic | ✓ | | | | ✓ |
-| Google Gemini | ✓ | ✓ | ✓ | | ✓ |
-| Stability AI | | ✓ | | | |
-| Runway | | | | ✓ | |
-| ElevenLabs | | | ✓ | | |
-
-## Default Models( 기본 모델)
-
-When you don't specify a model, the SDK automatically uses the first available model for each provider:
-
- 모델을 지정하지 않으면 SDK가 각 제공업체의 첫 번째 사용 가능한 모델을 자동으로 사용합니다:
-
-| Provider | Text Generation | Image Generation | Text-to-Speech |
-|----------|----------------|------------------|----------------|
-| OpenAI | `gpt-4.1` | `gpt-image-1` | `gpt-4o-mini-tts` |
-| Anthropic | `claude-sonnet-4-0` | - | - |
-| Google Gemini | `gemini-2.5-flash-preview-05-20` | `gemini-2.0-flash-preview-image-generation` | `gemini-2.5-pro-preview-tts` |
-| Stability AI | - | `stable-diffusion-v1-5` | - |
-| Runway | - | - | - |
-| ElevenLabs | - | - | `eleven_flash_v2` |
-
-## Installation
+## 🔧 Installation
 
 ```bash
+pnpm add @librorum/aiservice
+# or
 npm install @librorum/aiservice
 # or
 yarn add @librorum/aiservice
-# or
-bun add @librorum/aiservice
 ```
 
- **설치**
+## 🌍 Environment Setup
 
-## Environment Setup
-
-Create a `.env` file in your project root and add your API keys:
-
- 프로젝트 루트에 `.env` 파일을 생성하고 API 키를 추가하세요:
+Create a `.env` file in your project root:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key
@@ -74,364 +49,250 @@ RUNWAY_API_KEY=your_runway_api_key
 ELEVENLABS_API_KEY=your_elevenlabs_api_key
 ```
 
-## Usage Examples
-
-### Basic Setup
+## 🚀 Quick Start
 
 ```javascript
 import aiService from '@librorum/aiservice';
 
+// Check API key status
 const api_status = aiService.testApiKeys();
 console.log(api_status);
+
+// Simple text generation
+const { text } = await aiService.generateText({
+  provider: 'openai',
+  prompt: 'Hello, world!'
+});
+
+console.log(text);
 ```
 
- **기본 설정**
+## 💬 Conversation Management
 
-### Text Generation
+### Method 1: Conversation History (All Providers)
 
 ```javascript
-// Using model name only (auto-detect provider)
-// 모델명만으로 프로바이더 자동 감지
-const { text, usage, cost } = await aiService.generateText({
-  model: 'gpt-4o',
-  prompt: 'Explain quantum computing in simple terms'
+// Start a conversation
+let conversation_history = [];
+
+// First message
+const response1 = await aiService.generateText({
+  provider: 'openai', // or 'anthropic', 'gemini'
+  prompt: 'My name is John. Remember this.',
+  conversation_history
 });
 
-const { text: claude_text, usage: claude_usage, cost: claude_cost } = await aiService.generateText({
-  model: 'claude-opus-4-0',
-  prompt: 'Write a creative story about AI'
-});
+conversation_history = response1.conversation_history;
+console.log(response1.text); // "I'll remember that your name is John."
 
-// Using default models (recommended for quick start)
-// 기본 모델 사용 (빠른 시작에 권장)
-const { text: openai_text } = await aiService.generateText({
+// Continue conversation
+const response2 = await aiService.generateText({
   provider: 'openai',
-  prompt: 'Explain quantum computing in simple terms'
+  prompt: 'What is my name?',
+  conversation_history
 });
 
-const { text: anthropic_text } = await aiService.generateText({
-  provider: 'anthropic',
-  prompt: 'Write a creative story about AI'
-});
-
-// Specifying custom models with provider (explicit)
-// 프로바이더와 모델을 명시적으로 지정
-const { text: custom_text, usage: custom_usage, cost: custom_cost } = await aiService.generateText({
-  provider: 'openai',
-  model: 'gpt-4o',
-  prompt: 'Explain quantum computing in simple terms',
-  temperature: 0.7,
-  max_tokens: 1000
-});
-
-// Response structure
-// 응답 구조
-console.log(text);    // Generated text
-console.log(usage);   // { input_tokens, output_tokens, total_tokens }
-console.log(cost);    // Cost information (if 
+console.log(response2.text); // "Your name is John."
 ```
 
- **텍스트 생성**
+### Method 2: Conversation State (OpenAI Only)
 
-### Image Generation
+```javascript
+// First message with conversation state
+const response1 = await aiService.generateText({
+  provider: 'openai',
+  prompt: 'My name is John. Remember this.',
+  use_conversation_state: true,
+  store: true
+});
+
+console.log(response1.response_id); // "resp_xxx..."
+
+// Continue with response ID
+const response2 = await aiService.generateText({
+  provider: 'openai',
+  prompt: 'What is my name?',
+  use_conversation_state: true,
+  previous_response_id: response1.response_id
+});
+
+console.log(response2.text); // "Your name is John."
+```
+
+## 🎨 Text Generation
+
+```javascript
+// Basic usage
+const { text, usage, cost } = await aiService.generateText({
+  provider: 'openai',
+  prompt: 'Explain quantum computing'
+});
+
+// Advanced options
+const response = await aiService.generateText({
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-0',
+  prompt: 'Write a creative story',
+  temperature: 0.8,
+  max_tokens: 1000,
+  ai_rule: 'Write in a friendly tone'
+});
+
+// With web search
+const { text: searchResult } = await aiService.generateText({
+  provider: 'gemini',
+  prompt: 'Find recent AI news and summarize',
+  system_tools: ['web_search']
+});
+```
+
+## 🖼️ Image Generation
 
 ```javascript
 import fs from 'fs/promises';
 
-// Using default models
-// 기본 모델 사용
-const { image, usage, cost } = await aiService.generateImage({
+// Basic image generation
+const { image } = await aiService.generateImage({
   provider: 'openai',
   prompt: 'A futuristic city with flying cars'
 });
 
-// Save image buffer to file
-// 이미지 버퍼를 파일로 저장
-await fs.writeFile('generated_image.jpg', image);
+await fs.writeFile('image.jpg', image);
 
-const { image: stability_image, usage: stability_usage, cost: stability_cost } = await aiService.generateImage({
+// Custom parameters
+const { image: customImage } = await aiService.generateImage({
   provider: 'stability',
-  prompt: 'A beautiful landscape with mountains and lakes'
-});
-
-await fs.writeFile('stability_image.jpg', stability_image);
-
-// Specifying custom models and parameters
-// 사용자 지정 모델 및 매개변수 지정
-const { image: custom_image, usage: custom_usage, cost: custom_cost } = await aiService.generateImage({
-  provider: 'openai',
-  model: 'dall-e-3',
-  prompt: 'A futuristic city with flying cars',
+  model: 'stable-diffusion-v1-5',
+  prompt: 'A serene mountain landscape',
   width: 1024,
-  height: 1024,
-  n: 1
+  height: 1024
 });
-
-await fs.writeFile('custom_image.jpg', custom_image);
-
-// Response structure
-// 응답 구조
-console.log('Image saved to file');    // Generated image buffer saved
-console.log(usage);    // { input_tokens, output_tokens, total_tokens }
-console.log(cost);     // Cost information 
 ```
 
- **이미지 생성**
-
-### Text-to-Speech
+## 🔊 Text-to-Speech
 
 ```javascript
 import fs from 'fs/promises';
 
-// Using default models
-// 기본 모델 사용
-const { audio, usage, cost } = await aiService.generateTTS({
+// OpenAI TTS
+const { audio } = await aiService.generateTTS({
   provider: 'openai',
-  prompt: 'Hello, this is a test of text-to-speech functionality'
+  prompt: 'Hello, this is a test.',
+  voice: 'alloy'
 });
 
-// Save audio buffer to file
-// 오디오 버퍼를 파일로 저장
-await fs.writeFile('generated_audio.mp3', audio);
+await fs.writeFile('speech.mp3', audio);
 
-const { audio: elevenlabs_audio, usage: elevenlabs_usage, cost: elevenlabs_cost } = await aiService.generateTTS({
+// ElevenLabs TTS
+const { audio: elevenAudio } = await aiService.generateTTS({
   provider: 'elevenlabs',
-  prompt: 'Welcome to our AI service platform'
+  prompt: 'Hello, this is ElevenLabs.',
+  voice_id: 'your_voice_id'
 });
-
-await fs.writeFile('elevenlabs_audio.mp3', elevenlabs_audio);
-
-// Specifying custom models and parameters
-// 사용자 지정 모델 및 매개변수 지정
-const { audio: custom_audio, usage: custom_usage, cost: custom_cost } = await aiService.generateTTS({
-  provider: 'openai',
-  model: 'tts-1',
-  prompt: 'Hello, this is a test of text-to-speech functionality',
-  voice: 'alloy',
-  response_format: 'mp3'
-});
-
-await fs.writeFile('custom_audio.mp3', custom_audio);
-
-// Response structure
-// 응답 구조
-console.log('Audio saved to file');    // Generated audio buffer saved
-console.log(usage);    // { input_tokens, output_tokens, total_tokens }
-console.log(cost);     // Cost information 
 ```
 
- **텍스트 음성 변환**
-
-### Video Generation
+## 🎬 Video Generation
 
 ```javascript
-import fs from 'fs/promises';
-
 // Runway video generation
-const { video, usage, cost } = await aiService.generateVideo({
+const { video } = await aiService.generateVideo({
   provider: 'runway',
-  model: 'gen3a_turbo',
   input: {
-    prompt: 'A cat walking through a garden',
+    prompt: 'A serene lake with mountains',
     duration: 5
   }
 });
 
-// Save video buffer to file
-// 비디오 버퍼를 파일로 저장
-await fs.writeFile('generated_video.mp4', video);
-
-console.log('Video saved to file');    // Generated video saved
-console.log(usage);    // Usage information
-console.log(cost);     // Cost information 
+await fs.writeFile('video.mp4', video);
 ```
 
- **비디오 생성**
-
-### Web Search
+## 🛠️ Custom Tools
 
 ```javascript
-// Basic web search with AI analysis
-// 기본 웹 검색과 AI 분석
-const { text, usage, cost } = await aiService.generateText({
-  provider: 'openai',
-  prompt: 'What are the latest developments in quantum computing?',
-  web_search: true,  // Enable web search
-});
-
-// Using system tools for web search (recommended)
-// 웹 검색을 위한 시스템 도구 사용 (권장)
-const { text: search_result, usage, cost } = await aiService.generateText({
-  provider: 'anthropic',
-  prompt: 'Find recent news about AI breakthroughs and summarize them',
-  system_tools: ['web_search'],
-  temperature: 0.3
-});
-
-// Combined AI processing with web search for multiple providers
-// 여러 제공업체에 대한 웹 검색과 결합된 AI 처리
-const { text: gemini_result } = await aiService.generateText({
-  provider: 'gemini',
-  prompt: 'Search for current cryptocurrency prices and provide investment analysis',
-  system_tools: ['web_search'],
-  temperature: 0.3
-});
-
-// Response includes web search results integrated with AI analysis
-// 응답에는 AI 분석과 통합된 웹 검색 결과가 포함됩니다
-console.log(text);    // AI-processed response with web search context
-console.log(usage);   // Usage information
-console.log(cost);    // Cost information 
-```
-
- **웹 검색**
-
-### Custom Tools (사용자 정의 도구)
-
-You can register custom tools directly in your main application using the `registerTool` method from the aiService instance:
-
-사용자 정의 도구를 aiService 인스턴스의 `registerTool` 메서드를 사용하여 메인 애플리케이션에서 직접 등록할 수 있습니다:
-
-```javascript
-import aiService from '@librorum/aiservice';
-
-// Register a custom calculator tool
-// 사용자 정의 계산기 도구 등록
+// Register a calculator tool
 aiService.registerTool({
   name: 'calculator',
-  description: 'Evaluates a mathematical expression.',
+  description: 'Evaluates mathematical expressions',
   parameters: {
     type: 'object',
     properties: {
       expression: {
         type: 'string',
-        description: 'The mathematical expression to evaluate, e.g., "1+2*3"',
-      },
-    },
-    required: ['expression'],
-    additionalProperties: false,
-  },
-  func: ({ expression }) => {
-    try {
-      // 입력된 수식을 안전하게 평가합니다.
-      if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
-        throw new Error("Invalid expression")
+        description: 'Mathematical expression to evaluate'
       }
-      const result = Function(`"use strict"; return (${expression})`)()
-      return result
+    },
+    required: ['expression']
+  },
+  func: async ({ expression }) => {
+    try {
+      return Function(`"use strict"; return (${expression})`)()
     } catch (error) {
       return "Invalid expression"
     }
   }
 });
 
-// Register a custom weather tool
-// 사용자 정의 날씨 도구 등록
-aiService.registerTool({
-  name: 'weather',
-  description: 'Get current weather information for a location',
-  parameters: {
-    type: 'object',
-    properties: {
-      location: {
-        type: 'string',
-        description: 'City name or coordinates'
-      },
-      unit: {
-        type: 'string',
-        enum: ['celsius', 'fahrenheit'],
-        description: 'Temperature unit'
-      }
-    },
-    required: ['location']
-  },
-  func: ({ location, unit = 'celsius' }) => {
-    // 실제 날씨 API 호출 로직을 여기에 구현
-    // Implement actual weather API call logic here
-    return `Current weather in ${location}: 22°${unit === 'celsius' ? 'C' : 'F'}, sunny`;
-  }
-});
-
-// After registering tools, you can use them in AI requests
-// 도구 등록 후, AI 요청에서 사용할 수 있습니다
-const { text, usage, cost } = await aiService.generateText({
+// Use the tool
+const { text } = await aiService.generateText({
   provider: 'openai',
-  prompt: 'Calculate the sum of numbers from 1 to 10 and check the weather in Seoul',
-  user_tools: ['calculator', 'weather'],  // Use registered tools
-  temperature: 0.1
+  prompt: 'Calculate 15 * 23 + 45',
+  user_tools: ['calculator']
 });
-
-console.log(text);    // AI response with tool-assisted calculations and weather info
-console.log(usage);   // Usage information
-console.log(cost);    // Cost information
 ```
 
-### Testing
-
-The SDK includes enhanced testing capabilities to verify specific features and tools:
-
- SDK에는 특정 기능과 도구를 확인하기 위한 향상된 테스트 기능이 포함되어 있습니다:
+## 🧪 Testing
 
 ```javascript
-// Test all features for all providers
-// 모든 제공업체의 모든 기능 테스트
+// Test all providers
 await aiService.test();
 
-// Test all features for specific provider
-// 특정 제공업체의 모든 기능 테스트
+// Test specific provider
 await aiService.test('openai');
 
-// Test specific features
-// 특정 기능 테스트
-await aiService.test('openai', 'text');        // Text generation only
-await aiService.test('openai', 'image');       // Image generation only
-await aiService.test('openai', 'audio');       // TTS/STT only
-await aiService.test('openai', 'video');       // Video generation only
+// Test specific feature
+await aiService.test('gemini', 'text');
 
-// Test with system tools (web search)
-// 웹 검색을 위한 시스템 도구와 함께 테스트
-await aiService.test('openai', 'text', ['web_search']);
-await aiService.test('anthropic', null, ['web_search']); // All features with web search
-await aiService.test(null, 'text', ['web_search']); // All providers, text generation with web search
-
-// Test with user tools (calculator)
-// 사용자 도구(계산기)와 함께 테스트
-await aiService.test('openai', 'text', [], ['calculator']);
-await aiService.test('anthropic', null, [], ['calculator']); // All features with calculator
-
-// Test with both system and user tools
-// 시스템 도구와 사용자 도구 모두 사용하여 테스트
-await aiService.test('gemini', 'text', ['web_search'], ['calculator']);
-
-// Test different providers
-// 다른 제공업체 테스트
-await aiService.test('anthropic', 'text');
-await aiService.test('gemini', 'image');
-await aiService.test('elevenlabs', 'audio');
-await aiService.test('runway', 'video');
+// Test with tools
+await aiService.test('openai', 'text', ['web_search'], ['calculator']);
 ```
 
- **테스트**
+### NPM Test Scripts
 
-### Cost Calculation
+```bash
+# Basic tests
+pnpm test                        # Test all features
+pnpm run test:openai            # Test OpenAI
+pnpm run test:websearch         # Test web search
 
-Cost Calculated in USD & KRW
+# Conversation tests
+pnpm run test:conversation       # Test all providers
+pnpm run test:conversation:openai        # OpenAI history
+pnpm run test:conversation:anthropic     # Anthropic history
+pnpm run test:conversation:gemini        # Gemini history
+pnpm run test:conversation_state         # OpenAI state mode
+
+# Media tests
+pnpm run test:stability         # Image generation
+pnpm run test:elevenlabs        # Text-to-speech
+pnpm run test:runway           # Video generation
+```
+
+## 💰 Cost Tracking
 
 ```javascript
 const { text, usage, cost } = await aiService.generateText({
   provider: 'openai',
-  model: 'gpt-4',
-  prompt: 'Explain machine learning',
+  prompt: 'Hello world'
 });
 
-console.log(cost); // Cost information
-console.log(usage); // Token usage information
+console.log(usage); // { input_tokens: 10, output_tokens: 5, total_tokens: 15 }
+console.log(cost);  // { usd: 0.0001, krw: 0.13 }
 ```
 
 ## API Reference
 
 ### generateText(options)
-
+{{ ... }}
 Generate text using various AI providers.
 
  다양한 AI 제공업체를 사용하여 텍스트를 생성합니다.
