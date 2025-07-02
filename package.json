@@ -1,6 +1,6 @@
 {
   "name": "@librorum/aiservice",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Unified library for easy integration of multiple AI APIs",
   "keywords": [
     "ai",
@@ -22,6 +22,7 @@
     "test:stt": "DEBUG=ai_service:* node index.js stt",
     "test:openai": "DEBUG=ai_service:* node index.js openai",
     "test:openai:text": "DEBUG=ai_service:* node index.js text openai",
+    "test:openai:image": "DEBUG=ai_service:* node index.js image openai",
     "test:openai:websearch": "DEBUG=ai_service:* node index.js websearch openai",
     "test:anthropic": "DEBUG=ai_service:* node index.js anthropic",
     "test:anthropic:text": "DEBUG=ai_service:* node index.js text anthropic",
@@ -30,6 +31,7 @@
     "test:gemini": "DEBUG=ai_service:* node index.js gemini",
     "test:gemini:text": "DEBUG=ai_service:* node index.js text gemini",
     "test:gemini:tool": "DEBUG=ai_service:* node index.js tool gemini",
+    "test:gemini:image": "DEBUG=ai_service:* node index.js image gemini",
     "test:gemini:websearch": "DEBUG=ai_service:* node index.js websearch gemini",
     "test:stability": "DEBUG=ai_service:* node index.js stability",
     "test:runway": "DEBUG=ai_service:* node index.js runway",

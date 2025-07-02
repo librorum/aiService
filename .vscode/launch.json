@@ -97,6 +97,24 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "OpenAI image",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/index.js",
+      "args": [
+        "image",
+        "openai"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "ai_service:*",
+        "NODE_ENV": "dev"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "OpenAI image_generator",
       "skipFiles": [
         "<node_internals>/**"
