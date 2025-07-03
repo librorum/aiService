@@ -103,7 +103,6 @@ const response1 = await aiService.generateText({
   provider: 'openai',
   prompt: 'My name is John. Remember this.',
   use_conversation_state: true,
-  store: true
 });
 
 console.log(response1.response_id); // "resp_xxx..."

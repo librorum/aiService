@@ -26,7 +26,6 @@
     "summary": null
   },
   "service_tier": "default",
-  "store": true,
   "temperature": 1,
   "text": {
     "format": {

@@ -108,7 +108,6 @@ class OpenAiService extends AIServiceBase {
     user_tools = [],
     conversation_history = null, // 기존 방식 - Responses API로 변환
     use_conversation_state = false, // 새로운 Responses API 사용 여부
-    store = true, // Responses API에서 대화 저장 여부
     previous_response_id = null, // 이전 응답 ID (Responses API용)
   }) {
     try {
@@ -117,7 +116,7 @@ class OpenAiService extends AIServiceBase {
 
       // 입력 구성
       let input
-      
+
       if (use_conversation_state && previous_response_id) {
         // Conversation State 방식: 이전 응답 ID가 있으면 새 메시지만 전송
         input = [{ role: 'user', content: prompt }]
@@ -137,7 +136,6 @@ class OpenAiService extends AIServiceBase {
       const request = {
         model,
         input,
-        store,
         temperature
         // max_tokens는 Responses API에서 지원하지 않음
         // max_completion_tokens도 현재 지원하지 않는 것으로 보임
@@ -207,7 +205,6 @@ class OpenAiService extends AIServiceBase {
           output_tokens: response.usage?.output_tokens || 0,
         }),
         response_id: response.id, // 다음 요청에서 사용할 수 있도록 응답 ID 반환
-        stored: store,
         updated_conversation_history: updated_conversation_history // 기존 방식 호환성
       }
     } catch (error) {

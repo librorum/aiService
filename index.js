@@ -189,7 +189,6 @@ class AIService {
     web_search = false,
     conversation_history = null, // 기존 방식 (모든 provider 지원)
     use_conversation_state = false, // OpenAI Responses API 사용 여부
-    store = true, // OpenAI Responses API에서 대화 저장 여부
     previous_response_id = null, // OpenAI Responses API용 이전 응답 ID
   }) {
     if (!provider && model) {
@@ -208,7 +207,6 @@ class AIService {
       web_search,
       conversation_history,
       use_conversation_state, // OpenAI 전용
-      store, // OpenAI 전용
       previous_response_id // OpenAI 전용
     })
 
@@ -373,7 +371,7 @@ class AIService {
         })
       }
       debug(`\n${providerName} test begin(feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
-      
+
       // conversation 관련 테스트는 별도 처리
       if (feature === 'conversation') {
         await this.testConversation(providerName)
@@ -387,7 +385,7 @@ class AIService {
       } else {
         await provider_service.test({ feature, system_tools, user_tools })
       }
-      
+
       debug(`${providerName} test completed`)
       return { status: 'completed', provider: providerName, feature, system_tools, user_tools }
     } else {
@@ -395,7 +393,7 @@ class AIService {
       const results = {}
       for (const [name, provider_service] of Object.entries(this.provider_services)) {
         debug(`\n${name} test begin(feature: ${feature || 'all'}, system_tools: ${system_tools}, user_tools: ${user_tools})`)
-        
+
         // conversation 관련 테스트는 별도 처리
         if (feature === 'conversation') {
           await this.testConversation(name)
@@ -409,7 +407,7 @@ class AIService {
         } else {
           await provider_service.test({ feature, system_tools, user_tools })
         }
-        
+
         debug(`${name} test completed`)
         results[name] = { status: 'completed', feature, system_tools, user_tools }
       }
@@ -420,9 +418,9 @@ class AIService {
   // 대화 히스토리 테스트 함수 (기존 방식)
   async testConversation(provider = 'openai') {
     console.log(`\n=== ${provider.toUpperCase()} 대화 히스토리 테스트 (기존 방식) ===`)
-    
+
     let conversation_history = null
-    
+
     // 첫 번째 대화
     console.log('\n1. 첫 번째 질문: "내 이름을 김철수라고 기억해줘"')
     const response1 = await this.generateText({
@@ -432,7 +430,7 @@ class AIService {
     })
     console.log('응답:', response1.text)
     conversation_history = response1.conversation_history
-    
+
     // 두 번째 대화
     console.log('\n2. 두 번째 질문: "내 이름이 뭐야?"')
     const response2 = await this.generateText({
@@ -442,7 +440,7 @@ class AIService {
     })
     console.log('응답:', response2.text)
     conversation_history = response2.conversation_history
-    
+
     // 세 번째 대화
     console.log('\n3. 세 번째 질문: "내 이름을 영어로 써줘"')
     const response3 = await this.generateText({
@@ -452,7 +450,7 @@ class AIService {
     })
     console.log('응답:', response3.text)
     conversation_history = response3.conversation_history
-    
+
     // 네 번째 대화
     console.log('\n4. 네 번째 질문: "지금까지 우리가 나눈 대화를 요약해줘"')
     const response4 = await this.generateText({
@@ -461,66 +459,62 @@ class AIService {
       conversation_history
     })
     console.log('응답:', response4.text)
-    
+
     console.log('\n=== 대화 히스토리 테스트 완료 ===')
   }
 
   // OpenAI Conversation State 테스트 함수 (새로운 방식)
   async testConversationState() {
     console.log('\n=== OpenAI Conversation State 테스트 (새로운 방식) ===')
-    
+
     let previous_response_id = null
-    
+
     // 첫 번째 대화
     console.log('\n1. 첫 번째 질문: "내 이름을 김철수라고 기억해줘"')
     const response1 = await this.generateText({
       provider: 'openai',
       prompt: '내 이름을 김철수라고 기억해줘',
       use_conversation_state: true,
-      store: true
     })
     console.log('응답:', response1.text)
     console.log('응답 ID:', response1.response_id)
     previous_response_id = response1.response_id
-    
+
     // 두 번째 대화
     console.log('\n2. 두 번째 질문: "내 이름이 뭐야?"')
     const response2 = await this.generateText({
       provider: 'openai',
       prompt: '내 이름이 뭐야?',
       use_conversation_state: true,
-      store: true,
       previous_response_id
     })
     console.log('응답:', response2.text)
     console.log('응답 ID:', response2.response_id)
     previous_response_id = response2.response_id
-    
+
     // 세 번째 대화
     console.log('\n3. 세 번째 질문: "내 이름을 영어로 써줘"')
     const response3 = await this.generateText({
       provider: 'openai',
       prompt: '내 이름을 영어로 써줘',
       use_conversation_state: true,
-      store: true,
       previous_response_id
     })
     console.log('응답:', response3.text)
     console.log('응답 ID:', response3.response_id)
     previous_response_id = response3.response_id
-    
+
     // 네 번째 대화
     console.log('\n4. 네 번째 질문: "지금까지 우리가 나눈 대화를 요약해줘"')
     const response4 = await this.generateText({
       provider: 'openai',
       prompt: '지금까지 우리가 나눈 대화를 요약해줘',
       use_conversation_state: true,
-      store: true,
       previous_response_id
     })
     console.log('응답:', response4.text)
     console.log('응답 ID:', response4.response_id)
-    
+
     console.log('\n=== Conversation State 테스트 완료 ===')
     console.log('장점: 매번 전체 대화 히스토리를 전송하지 않아 토큰 효율적!')
   }
@@ -606,9 +600,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
     const testConversation = async (providerName = 'openai') => {
       debug('=== 대화 히스토리 테스트 시작 ===')
-      
+
       let conversation_history = null
-      
+
       // 첫 번째 대화
       debug('첫 번째 질문: 내 이름을 김철수라고 기억해줘')
       const response1 = await aiService.generateText({
@@ -618,7 +612,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       })
       debug('첫 번째 응답:', response1.text)
       conversation_history = response1.conversation_history
-      
+
       // 두 번째 대화 (이전 대화 기억하는지 확인)
       debug('두 번째 질문: 내 이름이 뭐야?')
       const response2 = await aiService.generateText({
@@ -628,7 +622,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       })
       debug('두 번째 응답:', response2.text)
       conversation_history = response2.conversation_history
-      
+
       // 세 번째 대화 (더 복잡한 컨텍스트)
       debug('세 번째 질문: 내가 좋아하는 색깔은 파란색이야')
       const response3 = await aiService.generateText({
@@ -638,7 +632,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       })
       debug('세 번째 응답:', response3.text)
       conversation_history = response3.conversation_history
-      
+
       // 네 번째 대화 (이전 모든 정보 기억하는지 확인)
       debug('네 번째 질문: 내 이름과 좋아하는 색깔을 말해줘')
       const response4 = await aiService.generateText({
@@ -647,7 +641,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         conversation_history
       })
       debug('네 번째 응답:', response4.text)
-      
+
       debug('=== 대화 히스토리 테스트 완료 ===')
       debug('최종 대화 히스토리:', JSON.stringify(response4.conversation_history, null, 2))
     }
